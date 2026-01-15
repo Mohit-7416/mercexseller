@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   LayoutDashboard, 
@@ -8,9 +8,19 @@ import {
   BarChart3, 
   Settings,
   LogOut,
-  Store
+  Store,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useShop } from "@/contexts/ShopContext";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const navItems = [
   { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -23,6 +33,29 @@ const navItems = [
 
 const DashboardLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+  const { currentShop, shops, setCurrentShop } = useShop();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: "Signed out",
+      description: "You have been signed out successfully.",
+    });
+    navigate("/");
+  };
+
+  const handleSwitchShop = (shop: typeof currentShop) => {
+    if (shop) {
+      setCurrentShop(shop);
+      toast({
+        title: "Shop switched",
+        description: `Now viewing ${shop.name}`,
+      });
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -76,18 +109,38 @@ const DashboardLayout = () => {
 
           {/* User Section */}
           <div className="p-4 border-t border-sidebar-border">
-            <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-sidebar-accent/30">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-brown-dark flex items-center justify-center">
-                <span className="text-sm font-semibold text-secondary-foreground">JS</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">John's Shop</p>
-                <p className="text-xs text-muted-foreground truncate">Premium Seller</p>
-              </div>
-              <button className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors text-muted-foreground hover:text-sidebar-foreground">
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-secondary to-brown-dark flex items-center justify-center">
+                    <span className="text-sm font-semibold text-secondary-foreground">
+                      {currentShop?.name?.charAt(0).toUpperCase() || 'S'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-medium text-sidebar-foreground truncate">{currentShop?.name || 'Select Shop'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{currentShop?.city || 'No location'}</p>
+                  </div>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {shops.map(shop => (
+                  <DropdownMenuItem key={shop.id} onClick={() => handleSwitchShop(shop)}>
+                    <Store className="w-4 h-4 mr-2" />
+                    {shop.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem onClick={() => navigate('/shops')}>
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Manage Shops
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </aside>
