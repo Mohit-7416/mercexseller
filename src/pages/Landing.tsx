@@ -76,7 +76,7 @@ const Landing = () => {
           <Button
             variant="hero"
             size="xl"
-            onClick={() => navigate("/onboarding/how-it-works")}
+            onClick={() => navigate("/auth?mode=signup")}
             className="group relative overflow-hidden"
           >
             <span className="relative z-10 flex items-center gap-2">
