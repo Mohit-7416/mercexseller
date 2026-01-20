@@ -9,20 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Item } from '@/hooks/useItems';
 import { Category, Subcategory } from '@/hooks/useCategories';
 import ImageUploader from './ImageUploader';
-import ColorPicker from './ColorPicker';
+import ParameterDefinition, { Parameter, ParameterValue } from './ParameterDefinition';
+import VariantManager, { Variant } from './VariantManager';
 
 interface ImageItem {
   id: string;
   url: string;
   isPrimary: boolean;
   order: number;
-}
-
-interface ColorVariant {
-  id: string;
-  name: string;
-  hex: string;
-  quantity: number;
 }
 
 interface ItemFormModalProps {
@@ -55,14 +49,15 @@ const ItemFormModal = ({
     subcategory_id: '',
     custom_category: '',
     custom_subcategory: '',
-    quantity: '',
     price: '',
     cost_price: '',
     sku: ''
   });
 
   const [images, setImages] = useState<ImageItem[]>([]);
-  const [variants, setVariants] = useState<ColorVariant[]>([]);
+  const [parameters, setParameters] = useState<Parameter[]>([]);
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [includesColor, setIncludesColor] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Reset form when item changes
@@ -76,30 +71,27 @@ const ItemFormModal = ({
         order: idx
       }));
 
-      // Parse existing variants
-      const existingVariants: ColorVariant[] = Array.isArray(item.variants) 
-        ? item.variants.map((v: any, idx: number) => ({
-            id: v.id || `variant-${idx}`,
-            name: v.name || '',
-            hex: v.hex || '#000000',
-            quantity: v.quantity || 0
-          }))
-        : [];
+      // Parse existing parameters and variants from dimensions
+      const savedData = item.dimensions || {};
+      const existingParameters: Parameter[] = savedData.parameters || [];
+      const existingVariants: Variant[] = savedData.variants || [];
+      const hasColor = existingParameters.some((p: Parameter) => p.isColor);
 
       setFormData({
         name: item.name,
         description: item.description || '',
-        category_id: item.category_id || '',
-        subcategory_id: item.subcategory_id || '',
-        custom_category: '',
-        custom_subcategory: '',
-        quantity: item.quantity.toString(),
+        category_id: savedData.custom_category ? OTHERS_ID : (item.category_id || ''),
+        subcategory_id: savedData.custom_subcategory ? OTHERS_ID : (item.subcategory_id || ''),
+        custom_category: savedData.custom_category || '',
+        custom_subcategory: savedData.custom_subcategory || '',
         price: item.price.toString(),
         cost_price: item.cost_price?.toString() || '',
         sku: item.sku || ''
       });
       setImages(existingImages);
+      setParameters(existingParameters);
       setVariants(existingVariants);
+      setIncludesColor(hasColor);
     } else {
       setFormData({
         name: '',
@@ -108,13 +100,14 @@ const ItemFormModal = ({
         subcategory_id: '',
         custom_category: '',
         custom_subcategory: '',
-        quantity: '',
         price: '',
         cost_price: '',
         sku: ''
       });
       setImages([]);
+      setParameters([]);
       setVariants([]);
+      setIncludesColor(false);
     }
     setErrors({});
   }, [item, open]);
@@ -134,11 +127,20 @@ const ItemFormModal = ({
       newErrors.price = 'Valid price is required';
     }
 
-    // Validate variant quantities
+    // Validate variant quantities if variants exist
     if (variants.length > 0) {
       const missingQty = variants.filter(v => v.quantity <= 0);
       if (missingQty.length > 0) {
-        newErrors.variants = `Quantity missing for: ${missingQty.map(v => v.name).join(', ')}`;
+        newErrors.variants = `Quantity is required for all variants (${missingQty.length} missing)`;
+      }
+
+      // Check for incomplete variants
+      const activeParams = parameters.filter(p => p.values.length > 0);
+      const incompleteVariants = variants.filter(v => {
+        return activeParams.some(p => !v.parameterValues[p.id]);
+      });
+      if (incompleteVariants.length > 0) {
+        newErrors.variants = `All parameter values must be selected for each variant`;
       }
     }
 
@@ -159,10 +161,10 @@ const ItemFormModal = ({
   const handleSave = async () => {
     if (!validate()) return;
 
-    // Calculate total quantity from variants or use direct quantity
+    // Calculate total quantity from variants
     const totalQuantity = variants.length > 0
       ? variants.reduce((sum, v) => sum + v.quantity, 0)
-      : parseInt(formData.quantity) || 0;
+      : 0;
 
     // Prepare image URLs sorted by order
     const imageUrls = images
@@ -183,36 +185,21 @@ const ItemFormModal = ({
       cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
       sku: formData.sku.trim() || null,
       images: imageUrls,
-      variants: variants.length > 0 ? variants : null,
+      variants: null, // We store everything in dimensions now
       dimensions: {
         custom_category: formData.category_id === OTHERS_ID ? formData.custom_category.trim() : null,
-        custom_subcategory: formData.subcategory_id === OTHERS_ID ? formData.custom_subcategory.trim() : null
+        custom_subcategory: formData.subcategory_id === OTHERS_ID ? formData.custom_subcategory.trim() : null,
+        parameters: parameters,
+        variants: variants
       }
     };
 
     await onSave(itemData);
   };
 
-  // Generate SKU suggestion based on name and variants
-  const generateSKU = () => {
-    if (!formData.name.trim()) return;
-    
-    const namePart = formData.name
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '')
-      .substring(0, 6);
-    
-    const randomPart = Math.random().toString(36).substring(2, 5).toUpperCase();
-    
-    setFormData(prev => ({
-      ...prev,
-      sku: `${namePart}-${randomPart}`
-    }));
-  };
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{item ? 'Edit Item' : 'Add New Item'}</DialogTitle>
         </DialogHeader>
@@ -228,7 +215,7 @@ const ItemFormModal = ({
           {/* Basic Info */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label htmlFor="name">Item Name *</Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -342,53 +329,18 @@ const ItemFormModal = ({
 
           {/* SKU */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="sku">SKU</Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-6 text-xs"
-                onClick={generateSKU}
-              >
-                Auto-generate
-              </Button>
-            </div>
+            <Label htmlFor="sku">SKU (Base Reference)</Label>
             <Input
               id="sku"
               value={formData.sku}
               onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value.toUpperCase() }))}
-              placeholder="e.g., SHIRT-RED-M"
+              placeholder="e.g., SHIRT-001"
               className="font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              Unique identifier for inventory tracking. Can include variant codes.
+              Base SKU for this item. Variants can have their own SKU overrides.
             </p>
           </div>
-
-          {/* Color Variants */}
-          <ColorPicker
-            variants={variants}
-            onChange={setVariants}
-          />
-          {errors.variants && (
-            <p className="text-xs text-destructive">{errors.variants}</p>
-          )}
-
-          {/* Quantity (only if no variants) */}
-          {variants.length === 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="0"
-                value={formData.quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                placeholder="0"
-              />
-            </div>
-          )}
 
           {/* Pricing */}
           <div className="grid grid-cols-2 gap-4">
@@ -419,6 +371,32 @@ const ItemFormModal = ({
                 placeholder="Optional"
               />
             </div>
+          </div>
+
+          {/* Separator */}
+          <div className="border-t border-border/50 pt-6">
+            <h3 className="text-lg font-semibold mb-4">Parameters & Variants</h3>
+            
+            {/* Parameter Definition */}
+            <ParameterDefinition
+              parameters={parameters}
+              onChange={setParameters}
+              includesColor={includesColor}
+              onColorToggle={setIncludesColor}
+            />
+          </div>
+
+          {/* Variant Manager */}
+          <div className="pt-4">
+            <VariantManager
+              parameters={parameters}
+              variants={variants}
+              onChange={setVariants}
+              baseSku={formData.sku}
+            />
+            {errors.variants && (
+              <p className="text-xs text-destructive mt-2">{errors.variants}</p>
+            )}
           </div>
         </div>
 
