@@ -10,9 +10,31 @@ export interface ColorVariant {
   quantity: number;
 }
 
+export interface ParameterValue {
+  id: string;
+  value: string;
+  hex?: string;
+}
+
+export interface Parameter {
+  id: string;
+  name: string;
+  values: ParameterValue[];
+  isColor: boolean;
+}
+
+export interface Variant {
+  id: string;
+  parameterValues: Record<string, ParameterValue>;
+  quantity: number;
+  skuOverride?: string;
+}
+
 export interface ItemDimensions {
   custom_category?: string | null;
   custom_subcategory?: string | null;
+  parameters?: Parameter[];
+  variants?: Variant[];
   [key: string]: any;
 }
 

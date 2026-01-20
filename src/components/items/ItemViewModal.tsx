@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Item } from '@/hooks/useItems';
 import { useState } from 'react';
+import { Parameter } from './ParameterDefinition';
+import { Variant } from './VariantManager';
 
 interface ItemViewModalProps {
   item: Item | null;
@@ -27,9 +29,14 @@ const ItemViewModal = ({
   if (!item) return null;
 
   const images = item.images || [];
-  const variants = Array.isArray(item.variants) ? item.variants : [];
+  
+  // Parse data from dimensions
+  const dimensions = item.dimensions || {};
+  const parameters: Parameter[] = dimensions.parameters || [];
+  const variants: Variant[] = dimensions.variants || [];
+  
   const totalQuantity = variants.length > 0 
-    ? variants.reduce((sum: number, v: any) => sum + (v.quantity || 0), 0)
+    ? variants.reduce((sum, v) => sum + (v.quantity || 0), 0)
     : item.quantity;
 
   const getStatusBadge = (quantity: number) => {
@@ -40,9 +47,21 @@ const ItemViewModal = ({
 
   const status = getStatusBadge(totalQuantity);
 
+  // Get variant display string
+  const getVariantDisplay = (variant: Variant) => {
+    const parts: string[] = [];
+    parameters.forEach(p => {
+      const value = variant.parameterValues[p.id];
+      if (value) {
+        parts.push(`${p.name}: ${value.value}`);
+      }
+    });
+    return parts.join(' | ');
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Item Details</span>
@@ -118,35 +137,84 @@ const ItemViewModal = ({
               </div>
             )}
 
-            {/* Color Variants */}
+            {/* Parameters Section */}
+            {parameters.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="font-semibold">Parameters</h3>
+                <div className="space-y-2">
+                  {parameters.map((param) => (
+                    <div
+                      key={param.id}
+                      className="p-3 rounded-lg bg-muted/30"
+                    >
+                      <p className="text-xs text-muted-foreground mb-2">
+                        {param.name} {param.isColor && '(Color)'}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {param.values.map((v) => (
+                          <div
+                            key={v.id}
+                            className="flex items-center gap-2 px-2 py-1 rounded-full bg-card border border-border/50"
+                          >
+                            {v.hex && (
+                              <div
+                                className="w-4 h-4 rounded-full border border-border/50"
+                                style={{ backgroundColor: v.hex }}
+                              />
+                            )}
+                            <span className="text-sm">{v.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Variants Section */}
             {variants.length > 0 ? (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">Color Variants</h3>
+                  <h3 className="font-semibold">Variants ({variants.length})</h3>
                   <span className="text-sm text-muted-foreground">
                     Total: {totalQuantity} units
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {variants.map((v: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/30"
-                    >
+                  {variants.map((variant, idx) => {
+                    // Find color value for display
+                    const colorParam = parameters.find(p => p.isColor);
+                    const colorValue = colorParam ? variant.parameterValues[colorParam.id] : null;
+                    
+                    return (
                       <div
-                        className="w-8 h-8 rounded-full border border-border shrink-0"
-                        style={{ backgroundColor: v.hex }}
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium">{v.name}</p>
-                        <p className="text-xs text-muted-foreground">{v.hex}</p>
+                        key={variant.id || idx}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30"
+                      >
+                        {colorValue?.hex && (
+                          <div
+                            className="w-8 h-8 rounded-full border border-border shrink-0"
+                            style={{ backgroundColor: colorValue.hex }}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {getVariantDisplay(variant) || `Variant ${idx + 1}`}
+                          </p>
+                          {variant.skuOverride && (
+                            <p className="text-xs text-muted-foreground font-mono">
+                              SKU: {variant.skuOverride}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold">{variant.quantity}</p>
+                          <p className="text-xs text-muted-foreground">units</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold">{v.quantity}</p>
-                        <p className="text-xs text-muted-foreground">units</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (

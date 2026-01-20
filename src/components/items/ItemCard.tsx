@@ -1,6 +1,8 @@
-import { Package, Edit, Trash2, Eye, Loader2, ImageIcon } from 'lucide-react';
+import { Package, Edit, Trash2, Eye, Loader2, ImageIcon, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Item } from '@/hooks/useItems';
+import { Parameter, ParameterValue } from './ParameterDefinition';
+import { Variant } from './VariantManager';
 
 interface ItemCardProps {
   item: Item;
@@ -21,11 +23,19 @@ const ItemCard = ({
   onDelete, 
   deleting 
 }: ItemCardProps) => {
-  // Parse variants to get color info
-  const variants = Array.isArray(item.variants) ? item.variants : [];
+  // Parse data from dimensions
+  const dimensions = item.dimensions || {};
+  const parameters: Parameter[] = dimensions.parameters || [];
+  const variants: Variant[] = dimensions.variants || [];
+  
+  // Calculate total quantity from variants
   const totalQuantity = variants.length > 0 
-    ? variants.reduce((sum: number, v: any) => sum + (v.quantity || 0), 0)
+    ? variants.reduce((sum, v) => sum + (v.quantity || 0), 0)
     : item.quantity;
+
+  // Get color parameter for display
+  const colorParameter = parameters.find(p => p.isColor);
+  const colorValues = colorParameter?.values || [];
 
   const getStatusBadge = (quantity: number) => {
     if (quantity === 0) return { label: "Out of Stock", class: "bg-destructive/10 text-destructive" };
@@ -36,6 +46,26 @@ const ItemCard = ({
   const status = getStatusBadge(totalQuantity);
   const images = item.images || [];
   const primaryImage = images[0];
+
+  // Get variant summary
+  const getVariantSummary = () => {
+    if (variants.length === 0) return null;
+    
+    const summaryParts: string[] = [];
+    parameters.forEach(param => {
+      const uniqueValues = new Set<string>();
+      variants.forEach(v => {
+        const val = v.parameterValues[param.id];
+        if (val) uniqueValues.add(val.value);
+      });
+      if (uniqueValues.size > 0) {
+        summaryParts.push(`${uniqueValues.size} ${param.name}${uniqueValues.size > 1 ? 's' : ''}`);
+      }
+    });
+    return summaryParts.join(' • ');
+  };
+
+  const variantSummary = getVariantSummary();
 
   return (
     <div className="group p-5 rounded-xl bg-card/50 border border-border/50 hover:border-border hover:bg-card/80 transition-all duration-300">
@@ -90,27 +120,57 @@ const ItemCard = ({
           </div>
         )}
 
+        {/* Parameters summary */}
+        {parameters.length > 0 && (
+          <div className="flex flex-wrap gap-1 pt-1">
+            {parameters.slice(0, 3).map((param) => (
+              <span
+                key={param.id}
+                className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground"
+              >
+                {param.name}: {param.values.length}
+              </span>
+            ))}
+            {parameters.length > 3 && (
+              <span className="px-2 py-0.5 rounded-full bg-muted text-xs text-muted-foreground">
+                +{parameters.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Color variants preview */}
-        {variants.length > 0 && (
+        {colorValues.length > 0 && (
           <div className="flex items-center gap-1 pt-1">
             <div className="flex -space-x-1">
-              {variants.slice(0, 5).map((v: any, idx: number) => (
+              {colorValues.slice(0, 5).map((v, idx) => (
                 <div
                   key={idx}
                   className="w-5 h-5 rounded-full border-2 border-background"
                   style={{ backgroundColor: v.hex }}
-                  title={`${v.name}: ${v.quantity} units`}
+                  title={v.value}
                 />
               ))}
             </div>
-            {variants.length > 5 && (
+            {colorValues.length > 5 && (
               <span className="text-xs text-muted-foreground ml-1">
-                +{variants.length - 5}
+                +{colorValues.length - 5}
               </span>
             )}
-            <span className="text-xs text-muted-foreground ml-auto">
-              {variants.length} colors
-            </span>
+          </div>
+        )}
+
+        {/* Variants info */}
+        {variants.length > 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+            <Layers className="w-3 h-3" />
+            <span>{variants.length} variant{variants.length !== 1 ? 's' : ''}</span>
+            {variantSummary && (
+              <>
+                <span className="text-border">•</span>
+                <span className="truncate">{variantSummary}</span>
+              </>
+            )}
           </div>
         )}
 
