@@ -1,0 +1,249 @@
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Category, Subcategory } from '@/hooks/useCategories';
+import { WizardFormData, ImageItem } from '../ItemWizard';
+import ImageUploader from '../ImageUploader';
+
+const OTHERS_ID = 'others';
+
+const UNITS_OF_MEASURE = [
+  { value: 'pieces', label: 'Pieces' },
+  { value: 'kg', label: 'Kilograms' },
+  { value: 'g', label: 'Grams' },
+  { value: 'l', label: 'Liters' },
+  { value: 'ml', label: 'Milliliters' },
+  { value: 'm', label: 'Meters' },
+  { value: 'cm', label: 'Centimeters' },
+  { value: 'box', label: 'Box' },
+  { value: 'pack', label: 'Pack' },
+  { value: 'set', label: 'Set' },
+];
+
+interface ItemBasicInfoProps {
+  formData: WizardFormData;
+  updateFormData: (updates: Partial<WizardFormData>) => void;
+  errors: Record<string, string>;
+  categories: Category[];
+  getSubcategoriesByCategory: (categoryId: string) => Subcategory[];
+  shopId: string;
+}
+
+const ItemBasicInfo = ({
+  formData,
+  updateFormData,
+  errors,
+  categories,
+  getSubcategoriesByCategory,
+  shopId
+}: ItemBasicInfoProps) => {
+  const subcategories = formData.category_id && formData.category_id !== OTHERS_ID
+    ? getSubcategoriesByCategory(formData.category_id)
+    : [];
+
+  return (
+    <div className="space-y-6">
+      {/* Image Upload */}
+      <ImageUploader
+        images={formData.images}
+        onChange={(images) => updateFormData({ images })}
+        shopId={shopId}
+      />
+
+      {/* Basic Info */}
+      <div className="grid gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Item Name *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => updateFormData({ name: e.target.value })}
+              placeholder="Enter item name"
+              className={errors.name ? 'border-destructive' : ''}
+            />
+            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sku">SKU (Base Reference)</Label>
+            <Input
+              id="sku"
+              value={formData.sku}
+              onChange={(e) => updateFormData({ sku: e.target.value.toUpperCase() })}
+              placeholder="e.g., SHIRT-001"
+              className="font-mono"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => updateFormData({ description: e.target.value })}
+            placeholder="Enter item description"
+            rows={3}
+          />
+        </div>
+      </div>
+
+      {/* Category & Subcategory */}
+      <div className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select
+              value={formData.category_id}
+              onValueChange={(value) => updateFormData({
+                category_id: value,
+                subcategory_id: '',
+                custom_subcategory: ''
+              })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={OTHERS_ID}>
+                  <span className="text-muted-foreground">Others (Custom)</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Subcategory</Label>
+            <Select
+              value={formData.subcategory_id}
+              onValueChange={(value) => updateFormData({ subcategory_id: value })}
+              disabled={!formData.category_id || formData.category_id === OTHERS_ID}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select subcategory" />
+              </SelectTrigger>
+              <SelectContent>
+                {subcategories.map((sub) => (
+                  <SelectItem key={sub.id} value={sub.id}>
+                    {sub.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={OTHERS_ID}>
+                  <span className="text-muted-foreground">Others (Custom)</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Custom Category Input */}
+        {formData.category_id === OTHERS_ID && (
+          <div className="space-y-2">
+            <Label htmlFor="custom_category">Custom Category Name *</Label>
+            <Input
+              id="custom_category"
+              value={formData.custom_category}
+              onChange={(e) => updateFormData({ custom_category: e.target.value })}
+              placeholder="Enter custom category name"
+              className={errors.custom_category ? 'border-destructive' : ''}
+            />
+            {errors.custom_category && (
+              <p className="text-xs text-destructive">{errors.custom_category}</p>
+            )}
+          </div>
+        )}
+
+        {/* Custom Subcategory Input */}
+        {formData.subcategory_id === OTHERS_ID && (
+          <div className="space-y-2">
+            <Label htmlFor="custom_subcategory">Custom Subcategory Name *</Label>
+            <Input
+              id="custom_subcategory"
+              value={formData.custom_subcategory}
+              onChange={(e) => updateFormData({ custom_subcategory: e.target.value })}
+              placeholder="Enter custom subcategory name"
+              className={errors.custom_subcategory ? 'border-destructive' : ''}
+            />
+            {errors.custom_subcategory && (
+              <p className="text-xs text-destructive">{errors.custom_subcategory}</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Pricing & Unit */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="price">Selling Price (₹) *</Label>
+          <Input
+            id="price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={formData.price}
+            onChange={(e) => updateFormData({ price: e.target.value })}
+            placeholder="0"
+            className={errors.price ? 'border-destructive' : ''}
+          />
+          {errors.price && <p className="text-xs text-destructive">{errors.price}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="cost_price">Cost Price (₹)</Label>
+          <Input
+            id="cost_price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={formData.cost_price}
+            onChange={(e) => updateFormData({ cost_price: e.target.value })}
+            placeholder="Optional"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Unit of Measure</Label>
+          <Select
+            value={formData.unitOfMeasure}
+            onValueChange={(value) => updateFormData({ unitOfMeasure: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select unit" />
+            </SelectTrigger>
+            <SelectContent>
+              {UNITS_OF_MEASURE.map((unit) => (
+                <SelectItem key={unit.value} value={unit.value}>
+                  {unit.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Status */}
+      <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border/50">
+        <div>
+          <Label className="text-base">Active Status</Label>
+          <p className="text-xs text-muted-foreground">
+            Inactive items won't appear in listings
+          </p>
+        </div>
+        <Switch
+          checked={formData.isActive}
+          onCheckedChange={(checked) => updateFormData({ isActive: checked })}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default ItemBasicInfo;

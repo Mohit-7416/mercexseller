@@ -3,38 +3,44 @@ import { supabase } from '@/integrations/supabase/client';
 import { useShop } from '@/contexts/ShopContext';
 import type { Json } from '@/integrations/supabase/types';
 
-export interface ColorVariant {
-  id: string;
-  name: string;
-  hex: string;
-  quantity: number;
-}
-
 export interface ParameterValue {
   id: string;
   value: string;
   hex?: string;
+  isActive?: boolean;
 }
 
 export interface Parameter {
   id: string;
   name: string;
+  type: 'list' | 'text' | 'numeric' | 'color';
   values: ParameterValue[];
-  isColor: boolean;
+  isActive: boolean;
+  order: number;
 }
 
-export interface Variant {
+export interface VariantDetail {
   id: string;
-  parameterValues: Record<string, ParameterValue>;
+  parameterValues: Record<string, string>; // parameterId -> valueId
   quantity: number;
+  reservedQuantity: number;
+  soldQuantity: number;
   skuOverride?: string;
+  priceOverride?: number;
+  notes?: string;
+  barcode?: string;
+  weight?: number;
+  isActive: boolean;
 }
 
 export interface ItemDimensions {
   custom_category?: string | null;
   custom_subcategory?: string | null;
+  unitOfMeasure?: string;
   parameters?: Parameter[];
-  variants?: Variant[];
+  variants?: VariantDetail[];
+  hasVariants?: boolean;
+  singleQuantity?: number;
   [key: string]: any;
 }
 
@@ -49,7 +55,7 @@ export interface Item {
   price: number;
   cost_price: number | null;
   sku: string | null;
-  variants: ColorVariant[] | null;
+  variants: null;
   dimensions: ItemDimensions | null;
   images: string[] | null;
   is_active: boolean;
@@ -80,7 +86,7 @@ interface DbItem {
 const parseDbItem = (dbItem: DbItem): Item => {
   return {
     ...dbItem,
-    variants: Array.isArray(dbItem.variants) ? dbItem.variants as unknown as ColorVariant[] : null,
+    variants: null,
     dimensions: dbItem.dimensions as ItemDimensions | null
   };
 };
