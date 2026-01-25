@@ -1,8 +1,6 @@
 import { Package, Edit, Trash2, Eye, Loader2, ImageIcon, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Item } from '@/hooks/useItems';
-import { Parameter, ParameterValue } from './ParameterDefinition';
-import { Variant } from './VariantManager';
+import { Item, Parameter, VariantDetail } from '@/hooks/useItems';
 
 interface ItemCardProps {
   item: Item;
@@ -25,8 +23,22 @@ const ItemCard = ({
 }: ItemCardProps) => {
   // Parse data from dimensions
   const dimensions = item.dimensions || {};
-  const parameters: Parameter[] = dimensions.parameters || [];
-  const variants: Variant[] = dimensions.variants || [];
+  const parameters: Parameter[] = (dimensions.parameters || []).map((p: any, idx: number) => ({
+    ...p,
+    type: p.type || 'list',
+    isActive: p.isActive ?? true,
+    order: p.order ?? idx,
+    values: (p.values || []).map((v: any) => ({
+      ...v,
+      isActive: v.isActive ?? true
+    }))
+  }));
+  const variants: VariantDetail[] = (dimensions.variants || []).map((v: any) => ({
+    ...v,
+    reservedQuantity: v.reservedQuantity ?? 0,
+    soldQuantity: v.soldQuantity ?? 0,
+    isActive: v.isActive ?? true
+  }));
   
   // Calculate total quantity from variants
   const totalQuantity = variants.length > 0 
@@ -34,7 +46,7 @@ const ItemCard = ({
     : item.quantity;
 
   // Get color parameter for display
-  const colorParameter = parameters.find(p => p.isColor);
+  const colorParameter = parameters.find(p => p.type === 'color');
   const colorValues = colorParameter?.values || [];
 
   const getStatusBadge = (quantity: number) => {
@@ -55,8 +67,9 @@ const ItemCard = ({
     parameters.forEach(param => {
       const uniqueValues = new Set<string>();
       variants.forEach(v => {
-        const val = v.parameterValues[param.id];
-        if (val) uniqueValues.add(val.value);
+        const valueId = v.parameterValues[param.id];
+        const value = param.values.find(pv => pv.id === valueId);
+        if (value) uniqueValues.add(value.value);
       });
       if (uniqueValues.size > 0) {
         summaryParts.push(`${uniqueValues.size} ${param.name}${uniqueValues.size > 1 ? 's' : ''}`);

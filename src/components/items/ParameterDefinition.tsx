@@ -5,19 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-
-export interface Parameter {
-  id: string;
-  name: string;
-  values: ParameterValue[];
-  isColor: boolean;
-}
-
-export interface ParameterValue {
-  id: string;
-  value: string;
-  hex?: string; // Only for color parameters
-}
+import { Parameter, ParameterValue } from '@/hooks/useItems';
 
 interface ParameterDefinitionProps {
   parameters: Parameter[];
@@ -61,8 +49,8 @@ const ParameterDefinition = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   // Find color parameter if it exists
-  const colorParameter = parameters.find(p => p.isColor);
-  const regularParameters = parameters.filter(p => !p.isColor);
+  const colorParameter = parameters.find(p => p.type === 'color');
+  const regularParameters = parameters.filter(p => p.type !== 'color');
 
   const addParameter = () => {
     if (!newParamName.trim()) return;
@@ -75,8 +63,10 @@ const ParameterDefinition = ({
     const newParam: Parameter = {
       id: generateId(),
       name: newParamName.trim(),
+      type: 'list',
       values: [],
-      isColor: false
+      isActive: true,
+      order: parameters.length
     };
 
     onChange([...parameters, newParam]);
@@ -101,7 +91,8 @@ const ParameterDefinition = ({
 
     const newValue: ParameterValue = {
       id: generateId(),
-      value
+      value,
+      isActive: true
     };
 
     onChange(parameters.map(p => 
@@ -129,13 +120,15 @@ const ParameterDefinition = ({
       const newColorParam: Parameter = {
         id: generateId(),
         name: 'Color',
+        type: 'color',
         values: [],
-        isColor: true
+        isActive: true,
+        order: parameters.length
       };
       onChange([...parameters, newColorParam]);
     } else if (!checked && colorParameter) {
       // Remove color parameter
-      onChange(parameters.filter(p => !p.isColor));
+      onChange(parameters.filter(p => p.type !== 'color'));
     }
   };
 
@@ -153,11 +146,12 @@ const ParameterDefinition = ({
     const newValue: ParameterValue = {
       id: generateId(),
       value: colorName.trim(),
-      hex: colorHex
+      hex: colorHex,
+      isActive: true
     };
 
     onChange(parameters.map(p => 
-      p.isColor 
+      p.type === 'color' 
         ? { ...p, values: [...p.values, newValue] }
         : p
     ));

@@ -8,7 +8,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { WizardFormData, VariantDetail, Parameter } from '../ItemWizard';
+import { VariantDetail, Parameter } from '@/hooks/useItems';
+import { WizardFormData } from '../ItemWizard';
 import {
   Table,
   TableBody,

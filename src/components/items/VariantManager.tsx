@@ -4,19 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Parameter, ParameterValue } from './ParameterDefinition';
-
-export interface Variant {
-  id: string;
-  parameterValues: Record<string, ParameterValue>; // parameterId -> value
-  quantity: number;
-  skuOverride?: string;
-}
+import { Parameter, ParameterValue, VariantDetail } from '@/hooks/useItems';
 
 interface VariantManagerProps {
   parameters: Parameter[];
-  variants: Variant[];
-  onChange: (variants: Variant[]) => void;
+  variants: VariantDetail[];
+  onChange: (variants: VariantDetail[]) => void;
   baseSku?: string;
 }
 
@@ -26,13 +19,16 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Parameters that have values
-  const activeParameters = parameters.filter(p => p.values.length > 0);
+  const activeParameters = parameters.filter(p => p.values.length > 0 && p.isActive);
 
   const addVariant = () => {
-    const newVariant: Variant = {
+    const newVariant: VariantDetail = {
       id: generateId(),
       parameterValues: {},
-      quantity: 0
+      quantity: 0,
+      reservedQuantity: 0,
+      soldQuantity: 0,
+      isActive: true
     };
 
     onChange([...variants, newVariant]);
@@ -42,14 +38,14 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
     onChange(variants.filter(v => v.id !== id));
   };
 
-  const updateVariantValue = (variantId: string, parameterId: string, value: ParameterValue) => {
+  const updateVariantValue = (variantId: string, parameterId: string, valueId: string) => {
     const updatedVariants = variants.map(v => {
       if (v.id === variantId) {
         return {
           ...v,
           parameterValues: {
             ...v.parameterValues,
-            [parameterId]: value
+            [parameterId]: valueId
           }
         };
       }
@@ -73,7 +69,7 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
     ));
   };
 
-  const checkDuplicates = (variantsToCheck: Variant[]) => {
+  const checkDuplicates = (variantsToCheck: VariantDetail[]) => {
     const newErrors: Record<string, string> = {};
     
     for (let i = 0; i < variantsToCheck.length; i++) {
@@ -83,8 +79,8 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
         
         // Check if all parameter values match
         const allMatch = activeParameters.every(p => {
-          const val1 = v1.parameterValues[p.id]?.value;
-          const val2 = v2.parameterValues[p.id]?.value;
+          const val1 = v1.parameterValues[p.id];
+          const val2 = v2.parameterValues[p.id];
           return val1 && val2 && val1 === val2;
         });
 
@@ -101,10 +97,11 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
     checkDuplicates(variants);
   }, [variants, activeParameters]);
 
-  const getVariantDisplay = (variant: Variant) => {
+  const getVariantDisplay = (variant: VariantDetail) => {
     const parts: string[] = [];
     activeParameters.forEach(p => {
-      const value = variant.parameterValues[p.id];
+      const valueId = variant.parameterValues[p.id];
+      const value = p.values.find(v => v.id === valueId);
       if (value) {
         parts.push(value.value);
       }
@@ -112,12 +109,13 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
     return parts.length > 0 ? parts.join(' / ') : 'No values selected';
   };
 
-  const generateVariantSku = (variant: Variant) => {
+  const generateVariantSku = (variant: VariantDetail) => {
     if (!baseSku) return '';
     
     const parts = [baseSku];
     activeParameters.forEach(p => {
-      const value = variant.parameterValues[p.id];
+      const valueId = variant.parameterValues[p.id];
+      const value = p.values.find(v => v.id === valueId);
       if (value) {
         parts.push(value.value.substring(0, 3).toUpperCase());
       }
@@ -183,19 +181,16 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
                     <span className="text-sm text-muted-foreground">{param.name}</span>
                   </div>
                   <Select
-                    value={variant.parameterValues[param.id]?.id || ''}
+                    value={variant.parameterValues[param.id] || ''}
                     onValueChange={(valueId) => {
-                      const value = param.values.find(v => v.id === valueId);
-                      if (value) {
-                        updateVariantValue(variant.id, param.id, value);
-                      }
+                      updateVariantValue(variant.id, param.id, valueId);
                     }}
                   >
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder={`Select ${param.name.toLowerCase()}`} />
                     </SelectTrigger>
                     <SelectContent>
-                      {param.values.map((v) => (
+                      {param.values.filter(v => v.isActive !== false).map((v) => (
                         <SelectItem key={v.id} value={v.id}>
                           <div className="flex items-center gap-2">
                             {v.hex && (

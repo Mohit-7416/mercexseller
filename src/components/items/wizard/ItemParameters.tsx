@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Parameter, ParameterValue } from '../ItemWizard';
+import { Parameter, ParameterValue } from '@/hooks/useItems';
 
 // VIBGYOR spectrum for color selection
 const VIBGYOR_COLORS = [

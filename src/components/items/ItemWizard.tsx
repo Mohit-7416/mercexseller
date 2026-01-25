@@ -4,7 +4,7 @@ import { Loader2, ChevronLeft, ChevronRight, Check, Package } from 'lucide-react
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Item } from '@/hooks/useItems';
+import { Item, Parameter, ParameterValue, VariantDetail } from '@/hooks/useItems';
 import { Category, Subcategory } from '@/hooks/useCategories';
 import ItemBasicInfo from './wizard/ItemBasicInfo';
 import ItemParameters from './wizard/ItemParameters';
@@ -16,36 +16,6 @@ export interface ImageItem {
   url: string;
   isPrimary: boolean;
   order: number;
-}
-
-export interface ParameterValue {
-  id: string;
-  value: string;
-  hex?: string;
-  isActive: boolean;
-}
-
-export interface Parameter {
-  id: string;
-  name: string;
-  type: 'list' | 'text' | 'numeric' | 'color';
-  values: ParameterValue[];
-  isActive: boolean;
-  order: number;
-}
-
-export interface VariantDetail {
-  id: string;
-  parameterValues: Record<string, string>; // parameterId -> valueId
-  quantity: number;
-  reservedQuantity: number;
-  soldQuantity: number;
-  skuOverride?: string;
-  priceOverride?: number;
-  notes?: string;
-  barcode?: string;
-  weight?: number;
-  isActive: boolean;
 }
 
 export interface WizardFormData {
@@ -80,8 +50,6 @@ const STEPS = [
 ];
 
 const OTHERS_ID = 'others';
-
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
 interface ItemWizardProps {
   open: boolean;
@@ -136,8 +104,22 @@ const ItemWizard = ({
         order: idx
       }));
 
-      const existingParameters: Parameter[] = savedData.parameters || [];
-      const existingVariants: VariantDetail[] = savedData.variants || [];
+      const existingParameters: Parameter[] = (savedData.parameters || []).map((p: any, idx: number) => ({
+        ...p,
+        type: p.type || 'list',
+        isActive: p.isActive ?? true,
+        order: p.order ?? idx,
+        values: (p.values || []).map((v: any) => ({
+          ...v,
+          isActive: v.isActive ?? true
+        }))
+      }));
+      const existingVariants: VariantDetail[] = (savedData.variants || []).map((v: any) => ({
+        ...v,
+        reservedQuantity: v.reservedQuantity ?? 0,
+        soldQuantity: v.soldQuantity ?? 0,
+        isActive: v.isActive ?? true
+      }));
 
       setFormData({
         name: item.name,
@@ -152,22 +134,9 @@ const ItemWizard = ({
         unitOfMeasure: savedData.unitOfMeasure || 'pieces',
         isActive: item.is_active,
         images: existingImages,
-        parameters: existingParameters.map((p, idx) => ({
-          ...p,
-          order: p.order ?? idx,
-          isActive: p.isActive ?? true,
-          values: p.values.map(v => ({
-            ...v,
-            isActive: v.isActive ?? true
-          }))
-        })),
+        parameters: existingParameters,
         hasVariants: existingVariants.length > 0,
-        variants: existingVariants.map(v => ({
-          ...v,
-          reservedQuantity: v.reservedQuantity ?? 0,
-          soldQuantity: v.soldQuantity ?? 0,
-          isActive: v.isActive ?? true
-        })),
+        variants: existingVariants,
         singleQuantity: existingVariants.length === 0 ? item.quantity : 0,
       });
     } else {

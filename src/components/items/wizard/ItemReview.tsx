@@ -1,6 +1,7 @@
 import { Package, Check, AlertCircle, ImageIcon, Layers, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { WizardFormData, Parameter } from '../ItemWizard';
+import { Parameter } from '@/hooks/useItems';
+import { WizardFormData } from '../ItemWizard';
 import { Category, Subcategory } from '@/hooks/useCategories';
 
 const OTHERS_ID = 'others';
