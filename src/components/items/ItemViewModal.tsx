@@ -1,11 +1,9 @@
-import { Package, X } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Item } from '@/hooks/useItems';
+import { Item, Parameter, VariantDetail } from '@/hooks/useItems';
 import { useState } from 'react';
-import { Parameter } from './ParameterDefinition';
-import { Variant } from './VariantManager';
 
 interface ItemViewModalProps {
   item: Item | null;
@@ -32,8 +30,22 @@ const ItemViewModal = ({
   
   // Parse data from dimensions
   const dimensions = item.dimensions || {};
-  const parameters: Parameter[] = dimensions.parameters || [];
-  const variants: Variant[] = dimensions.variants || [];
+  const parameters: Parameter[] = (dimensions.parameters || []).map((p: any, idx: number) => ({
+    ...p,
+    type: p.type || 'list',
+    isActive: p.isActive ?? true,
+    order: p.order ?? idx,
+    values: (p.values || []).map((v: any) => ({
+      ...v,
+      isActive: v.isActive ?? true
+    }))
+  }));
+  const variants: VariantDetail[] = (dimensions.variants || []).map((v: any) => ({
+    ...v,
+    reservedQuantity: v.reservedQuantity ?? 0,
+    soldQuantity: v.soldQuantity ?? 0,
+    isActive: v.isActive ?? true
+  }));
   
   const totalQuantity = variants.length > 0 
     ? variants.reduce((sum, v) => sum + (v.quantity || 0), 0)
@@ -48,10 +60,11 @@ const ItemViewModal = ({
   const status = getStatusBadge(totalQuantity);
 
   // Get variant display string
-  const getVariantDisplay = (variant: Variant) => {
+  const getVariantDisplay = (variant: VariantDetail) => {
     const parts: string[] = [];
     parameters.forEach(p => {
-      const value = variant.parameterValues[p.id];
+      const valueId = variant.parameterValues[p.id];
+      const value = p.values.find(v => v.id === valueId);
       if (value) {
         parts.push(`${p.name}: ${value.value}`);
       }
@@ -148,7 +161,7 @@ const ItemViewModal = ({
                       className="p-3 rounded-lg bg-muted/30"
                     >
                       <p className="text-xs text-muted-foreground mb-2">
-                        {param.name} {param.isColor && '(Color)'}
+                        {param.name} {param.type === 'color' && '(Color)'}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {param.values.map((v) => (
@@ -184,8 +197,9 @@ const ItemViewModal = ({
                 <div className="space-y-2">
                   {variants.map((variant, idx) => {
                     // Find color value for display
-                    const colorParam = parameters.find(p => p.isColor);
-                    const colorValue = colorParam ? variant.parameterValues[colorParam.id] : null;
+                    const colorParam = parameters.find(p => p.type === 'color');
+                    const colorValueId = colorParam ? variant.parameterValues[colorParam.id] : null;
+                    const colorValue = colorValueId ? colorParam?.values.find(v => v.id === colorValueId) : null;
                     
                     return (
                       <div

@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Item } from '@/hooks/useItems';
+import { Item, Parameter, VariantDetail } from '@/hooks/useItems';
 import { Category, Subcategory } from '@/hooks/useCategories';
 import ImageUploader from './ImageUploader';
-import ParameterDefinition, { Parameter, ParameterValue } from './ParameterDefinition';
-import VariantManager, { Variant } from './VariantManager';
+import ParameterDefinition from './ParameterDefinition';
+import VariantManager from './VariantManager';
 
 interface ImageItem {
   id: string;
@@ -56,7 +56,7 @@ const ItemFormModal = ({
 
   const [images, setImages] = useState<ImageItem[]>([]);
   const [parameters, setParameters] = useState<Parameter[]>([]);
-  const [variants, setVariants] = useState<Variant[]>([]);
+  const [variants, setVariants] = useState<VariantDetail[]>([]);
   const [includesColor, setIncludesColor] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -73,9 +73,23 @@ const ItemFormModal = ({
 
       // Parse existing parameters and variants from dimensions
       const savedData = item.dimensions || {};
-      const existingParameters: Parameter[] = savedData.parameters || [];
-      const existingVariants: Variant[] = savedData.variants || [];
-      const hasColor = existingParameters.some((p: Parameter) => p.isColor);
+      const existingParameters: Parameter[] = (savedData.parameters || []).map((p: any, idx: number) => ({
+        ...p,
+        type: p.type || 'list',
+        isActive: p.isActive ?? true,
+        order: p.order ?? idx,
+        values: (p.values || []).map((v: any) => ({
+          ...v,
+          isActive: v.isActive ?? true
+        }))
+      }));
+      const existingVariants: VariantDetail[] = (savedData.variants || []).map((v: any) => ({
+        ...v,
+        reservedQuantity: v.reservedQuantity ?? 0,
+        soldQuantity: v.soldQuantity ?? 0,
+        isActive: v.isActive ?? true
+      }));
+      const hasColor = existingParameters.some((p: Parameter) => p.type === 'color');
 
       setFormData({
         name: item.name,
@@ -135,7 +149,7 @@ const ItemFormModal = ({
       }
 
       // Check for incomplete variants
-      const activeParams = parameters.filter(p => p.values.length > 0);
+      const activeParams = parameters.filter(p => p.values.length > 0 && p.isActive);
       const incompleteVariants = variants.filter(v => {
         return activeParams.some(p => !v.parameterValues[p.id]);
       });
