@@ -4,8 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Category, Subcategory } from '@/hooks/useCategories';
-import { WizardFormData, ImageItem } from '../ItemWizard';
-import ImageUploader from '../ImageUploader';
+import { WizardFormData } from '../ItemWizard';
 
 const OTHERS_ID = 'others';
 
@@ -37,7 +36,6 @@ const ItemBasicInfo = ({
   errors,
   categories,
   getSubcategoriesByCategory,
-  shopId
 }: ItemBasicInfoProps) => {
   const subcategories = formData.category_id && formData.category_id !== OTHERS_ID
     ? getSubcategoriesByCategory(formData.category_id)
@@ -45,38 +43,18 @@ const ItemBasicInfo = ({
 
   return (
     <div className="space-y-6">
-      {/* Image Upload */}
-      <ImageUploader
-        images={formData.images}
-        onChange={(images) => updateFormData({ images })}
-        shopId={shopId}
-      />
-
-      {/* Basic Info */}
+      {/* Basic Info - NO Image Upload here anymore */}
       <div className="grid gap-4">
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Item Name *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => updateFormData({ name: e.target.value })}
-              placeholder="Enter item name"
-              className={errors.name ? 'border-destructive' : ''}
-            />
-            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="sku">SKU (Base Reference)</Label>
-            <Input
-              id="sku"
-              value={formData.sku}
-              onChange={(e) => updateFormData({ sku: e.target.value.toUpperCase() })}
-              placeholder="e.g., SHIRT-001"
-              className="font-mono"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="name">Item Name *</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => updateFormData({ name: e.target.value })}
+            placeholder="Enter item name"
+            className={errors.name ? 'border-destructive' : ''}
+          />
+          {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
         </div>
 
         <div className="space-y-2">
