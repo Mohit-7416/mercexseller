@@ -28,11 +28,8 @@ export interface WizardFormData {
   custom_subcategory: string;
   price: string;
   cost_price: string;
-  sku: string;
   unitOfMeasure: string;
   isActive: boolean;
-  // Images
-  images: ImageItem[];
   // Parameters
   parameters: Parameter[];
   // Variant Config
@@ -43,9 +40,9 @@ export interface WizardFormData {
 }
 
 const STEPS = [
-  { id: 'basic', title: 'Basic Info', description: 'Item details and images' },
-  { id: 'parameters', title: 'Parameters', description: 'Define product attributes' },
-  { id: 'variants', title: 'Variants', description: 'Configure inventory' },
+  { id: 'basic', title: 'Basic Info', description: 'Item details' },
+  { id: 'parameters', title: 'Parameters', description: 'Define attributes' },
+  { id: 'variants', title: 'Variants & Images', description: 'Configure inventory' },
   { id: 'review', title: 'Review', description: 'Confirm and save' },
 ];
 
@@ -82,10 +79,8 @@ const ItemWizard = ({
     custom_subcategory: '',
     price: '',
     cost_price: '',
-    sku: '',
     unitOfMeasure: 'pieces',
     isActive: true,
-    images: [],
     parameters: [],
     hasVariants: false,
     variants: [],
@@ -97,16 +92,10 @@ const ItemWizard = ({
   useEffect(() => {
     if (item) {
       const savedData = item.dimensions || {};
-      const existingImages: ImageItem[] = (item.images || []).map((url, idx) => ({
-        id: `existing-${idx}`,
-        url,
-        isPrimary: idx === 0,
-        order: idx
-      }));
-
+      
       const existingParameters: Parameter[] = (savedData.parameters || []).map((p: any, idx: number) => ({
         ...p,
-        type: p.type || 'list',
+        type: p.type === 'color' ? 'list' : (p.type || 'list'), // Convert color to list
         isActive: p.isActive ?? true,
         order: p.order ?? idx,
         values: (p.values || []).map((v: any) => ({
@@ -114,11 +103,13 @@ const ItemWizard = ({
           isActive: v.isActive ?? true
         }))
       }));
+
       const existingVariants: VariantDetail[] = (savedData.variants || []).map((v: any) => ({
         ...v,
         reservedQuantity: v.reservedQuantity ?? 0,
         soldQuantity: v.soldQuantity ?? 0,
-        isActive: v.isActive ?? true
+        isActive: v.isActive ?? true,
+        images: v.images || []
       }));
 
       setFormData({
@@ -130,10 +121,8 @@ const ItemWizard = ({
         custom_subcategory: savedData.custom_subcategory || '',
         price: item.price.toString(),
         cost_price: item.cost_price?.toString() || '',
-        sku: item.sku || '',
         unitOfMeasure: savedData.unitOfMeasure || 'pieces',
         isActive: item.is_active,
-        images: existingImages,
         parameters: existingParameters,
         hasVariants: existingVariants.length > 0,
         variants: existingVariants,
@@ -150,10 +139,8 @@ const ItemWizard = ({
         custom_subcategory: '',
         price: '',
         cost_price: '',
-        sku: '',
         unitOfMeasure: 'pieces',
         isActive: true,
-        images: [],
         parameters: [],
         hasVariants: false,
         variants: [],
@@ -202,10 +189,10 @@ const ItemWizard = ({
           }
           // Check for duplicate combinations
           const seen = new Set<string>();
+          const activeParams = formData.parameters.filter(p => p.isActive && p.values.length > 0);
           for (const variant of formData.variants) {
-            const key = Object.entries(variant.parameterValues)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([, v]) => v)
+            const key = activeParams
+              .map(p => variant.parameterValues[p.id] || '')
               .join('|');
             if (seen.has(key)) {
               newErrors.variants = 'Duplicate variant combination detected';
@@ -247,14 +234,18 @@ const ItemWizard = ({
       ? formData.variants.reduce((sum, v) => sum + v.quantity, 0)
       : formData.singleQuantity;
 
-    // Prepare image URLs sorted by order
-    const imageUrls = formData.images
-      .sort((a, b) => {
-        if (a.isPrimary) return -1;
-        if (b.isPrimary) return 1;
-        return a.order - b.order;
-      })
-      .map(img => img.url);
+    // Collect all images from variants
+    const allImageUrls: string[] = [];
+    if (formData.hasVariants) {
+      formData.variants.forEach(v => {
+        const variantImages = v.images || [];
+        variantImages.forEach(img => {
+          if (!allImageUrls.includes(img.url)) {
+            allImageUrls.push(img.url);
+          }
+        });
+      });
+    }
 
     const itemData: Partial<Item> = {
       name: formData.name.trim(),
@@ -264,9 +255,9 @@ const ItemWizard = ({
       quantity: totalQuantity,
       price: parseFloat(formData.price) || 0,
       cost_price: formData.cost_price ? parseFloat(formData.cost_price) : null,
-      sku: formData.sku.trim() || null,
+      sku: null, // SKU removed
       is_active: formData.isActive,
-      images: imageUrls,
+      images: allImageUrls,
       variants: null,
       dimensions: {
         custom_category: formData.category_id === OTHERS_ID ? formData.custom_category.trim() : null,
@@ -310,6 +301,7 @@ const ItemWizard = ({
             formData={formData}
             updateFormData={updateFormData}
             errors={errors}
+            shopId={shopId}
           />
         );
       case 3:

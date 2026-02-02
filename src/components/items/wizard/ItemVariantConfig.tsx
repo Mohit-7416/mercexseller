@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Zap, Package, AlertCircle, Settings2, Trash2 } from 'lucide-react';
+import { Plus, X, Zap, Package, AlertCircle, Settings2, Trash2, Lock, ImageIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { VariantDetail, Parameter } from '@/hooks/useItems';
-import { WizardFormData } from '../ItemWizard';
+import { WizardFormData, ImageItem } from '../ItemWizard';
+import VariantImageUploader from './VariantImageUploader';
 import {
   Table,
   TableBody,
@@ -25,9 +26,10 @@ interface ItemVariantConfigProps {
   formData: WizardFormData;
   updateFormData: (updates: Partial<WizardFormData>) => void;
   errors: Record<string, string>;
+  shopId: string;
 }
 
-const ItemVariantConfig = ({ formData, updateFormData, errors }: ItemVariantConfigProps) => {
+const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVariantConfigProps) => {
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
   // Get active parameters with values
@@ -36,10 +38,34 @@ const ItemVariantConfig = ({ formData, updateFormData, errors }: ItemVariantConf
     [formData.parameters]
   );
 
+  // Check if any parameter has more than one LOV value
+  const hasMultipleLOVValues = useMemo(() => 
+    activeParameters.some(p => p.values.filter(v => v.isActive !== false).length > 1),
+    [activeParameters]
+  );
+
+  // Check if all parameters have exactly one LOV value
+  const allSingleLOV = useMemo(() => 
+    activeParameters.length > 0 && 
+    activeParameters.every(p => p.values.filter(v => v.isActive !== false).length === 1),
+    [activeParameters]
+  );
+
+  // Auto-enforce variant mode based on LOV logic
+  useEffect(() => {
+    if (hasMultipleLOVValues && !formData.hasVariants) {
+      // Force variants enabled when any LOV > 1
+      updateFormData({ hasVariants: true });
+    } else if (allSingleLOV && formData.hasVariants) {
+      // Suppress variants when all LOV = 1
+      updateFormData({ hasVariants: false, variants: [] });
+    }
+  }, [hasMultipleLOVValues, allSingleLOV, formData.hasVariants, updateFormData]);
+
   // Calculate possible combinations
   const possibleCombinations = useMemo(() => {
     if (activeParameters.length === 0) return 0;
-    return activeParameters.reduce((acc, p) => acc * p.values.filter(v => v.isActive).length, 1);
+    return activeParameters.reduce((acc, p) => acc * p.values.filter(v => v.isActive !== false).length, 1);
   }, [activeParameters]);
 
   // Calculate total inventory
@@ -76,14 +102,15 @@ const ItemVariantConfig = ({ formData, updateFormData, errors }: ItemVariantConf
             quantity: 0,
             reservedQuantity: 0,
             soldQuantity: 0,
-            isActive: true
+            isActive: true,
+            images: []
           });
         }
         return;
       }
 
       const param = activeParameters[paramIndex];
-      const activeValues = param.values.filter(v => v.isActive);
+      const activeValues = param.values.filter(v => v.isActive !== false);
 
       for (const value of activeValues) {
         generateCombinations(
@@ -107,7 +134,8 @@ const ItemVariantConfig = ({ formData, updateFormData, errors }: ItemVariantConf
       quantity: 0,
       reservedQuantity: 0,
       soldQuantity: 0,
-      isActive: true
+      isActive: true,
+      images: []
     };
     updateFormData({ variants: [...formData.variants, newVariant] });
   };
@@ -125,6 +153,14 @@ const ItemVariantConfig = ({ formData, updateFormData, errors }: ItemVariantConf
     updateFormData({
       variants: formData.variants.map(v =>
         v.id === id ? { ...v, ...updates } : v
+      )
+    });
+  };
+
+  const updateVariantImages = (variantId: string, images: ImageItem[]) => {
+    updateFormData({
+      variants: formData.variants.map(v =>
+        v.id === variantId ? { ...v, images } : v
       )
     });
   };
@@ -181,55 +217,93 @@ const ItemVariantConfig = ({ formData, updateFormData, errors }: ItemVariantConf
     return duplicates;
   }, [formData.variants, activeParameters]);
 
+  // Determine if variant control should be locked
+  const variantControlLocked = hasMultipleLOVValues;
+  const variantControlHidden = allSingleLOV || activeParameters.length === 0;
+
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-2">Variant Configuration</h3>
         <p className="text-sm text-muted-foreground">
-          Choose how to manage inventory: as a single SKU or with multiple variants.
+          Configure inventory management. Variants are auto-enabled when parameters have multiple values.
         </p>
       </div>
 
-      {/* Variant Toggle */}
-      <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-        <RadioGroup
-          value={formData.hasVariants ? 'variants' : 'single'}
-          onValueChange={(value) => updateFormData({ hasVariants: value === 'variants' })}
-          className="space-y-4"
-        >
-          <div className="flex items-start gap-3">
-            <RadioGroupItem value="single" id="single" className="mt-1" />
-            <div className="space-y-1">
-              <Label htmlFor="single" className="font-medium cursor-pointer">
-                Single SKU (No Variants)
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Item is tracked as a single unit. Parameters are informational only.
-              </p>
+      {/* Variant Toggle - Conditional display */}
+      {!variantControlHidden && (
+        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+          <RadioGroup
+            value={formData.hasVariants ? 'variants' : 'single'}
+            onValueChange={(value) => {
+              if (!variantControlLocked) {
+                updateFormData({ hasVariants: value === 'variants' });
+              }
+            }}
+            className="space-y-4"
+          >
+            <div className="flex items-start gap-3">
+              <RadioGroupItem 
+                value="single" 
+                id="single" 
+                className="mt-1" 
+                disabled={variantControlLocked}
+              />
+              <div className="space-y-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="single" className={`font-medium cursor-pointer ${variantControlLocked ? 'opacity-50' : ''}`}>
+                    Single SKU (No Variants)
+                  </Label>
+                  {variantControlLocked && (
+                    <Lock className="w-3 h-3 text-muted-foreground" />
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Item is tracked as a single unit. Parameters are informational only.
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-start gap-3">
-            <RadioGroupItem value="variants" id="variants" className="mt-1" />
-            <div className="space-y-1">
-              <Label htmlFor="variants" className="font-medium cursor-pointer">
-                Multiple Variants
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Each combination of parameter values is tracked separately.
-                {activeParameters.length > 0 && (
-                  <span className="text-primary ml-1">
-                    ({possibleCombinations} possible combinations)
-                  </span>
-                )}
-              </p>
+            <div className="flex items-start gap-3">
+              <RadioGroupItem value="variants" id="variants" className="mt-1" />
+              <div className="space-y-1">
+                <Label htmlFor="variants" className="font-medium cursor-pointer">
+                  Multiple Variants
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Each combination of parameter values is tracked separately.
+                  {activeParameters.length > 0 && (
+                    <span className="text-primary ml-1">
+                      ({possibleCombinations} possible combinations)
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
-          </div>
-        </RadioGroup>
-      </div>
+          </RadioGroup>
+
+          {variantControlLocked && (
+            <div className="mt-3 p-2 rounded bg-primary/10 text-xs text-primary flex items-center gap-2">
+              <Lock className="w-3 h-3" />
+              Variants auto-enabled: One or more parameters have multiple values
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* No Parameters Message */}
+      {activeParameters.length === 0 && (
+        <div className="p-6 rounded-lg border border-border/50 text-center">
+          <Package className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
+          <p className="font-medium text-muted-foreground">No parameters defined</p>
+          <p className="text-sm text-muted-foreground">
+            Go back and add parameters with values to enable variant management
+          </p>
+        </div>
+      )}
 
       {/* Single SKU Mode */}
-      {!formData.hasVariants && (
+      {!formData.hasVariants && activeParameters.length > 0 && (
         <div className="p-6 rounded-lg border border-border/50 space-y-4">
           <div className="flex items-center gap-3">
             <Package className="w-5 h-5 text-primary" />
@@ -255,7 +329,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors }: ItemVariantConf
       )}
 
       {/* Variants Mode */}
-      {formData.hasVariants && (
+      {formData.hasVariants && activeParameters.length > 0 && (
         <>
           {/* Inventory Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -285,262 +359,193 @@ const ItemVariantConfig = ({ formData, updateFormData, errors }: ItemVariantConf
           )}
 
           {/* Action Buttons */}
-          {activeParameters.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={generateAllVariants}
+              className="gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Auto-Generate All Combinations
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addVariant}
+              className="gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Single Variant
+            </Button>
+            {formData.variants.length > 0 && (
               <Button
                 type="button"
                 variant="outline"
-                onClick={generateAllVariants}
-                className="gap-2"
+                onClick={clearAllVariants}
+                className="gap-2 text-destructive hover:text-destructive"
               >
-                <Zap className="w-4 h-4" />
-                Auto-Generate All Combinations
+                <Trash2 className="w-4 h-4" />
+                Clear All
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addVariant}
-                className="gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add Single Variant
-              </Button>
-              {formData.variants.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={clearAllVariants}
-                  className="gap-2 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Clear All
-                </Button>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Variants Table */}
+          {/* Variants List with Images */}
           {formData.variants.length > 0 ? (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    {activeParameters.map(p => (
-                      <TableHead key={p.id} className="min-w-[100px]">{p.name}</TableHead>
-                    ))}
-                    <TableHead className="min-w-[80px]">Qty</TableHead>
-                    <TableHead className="min-w-[80px]">Reserved</TableHead>
-                    <TableHead className="min-w-[100px]">SKU</TableHead>
-                    <TableHead className="w-[60px]">Status</TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {formData.variants.map((variant, idx) => {
-                    const isDuplicate = duplicateVariants.has(variant.id);
-                    
-                    return (
-                      <TableRow 
-                        key={variant.id}
-                        className={isDuplicate ? 'bg-destructive/5' : ''}
-                      >
-                        {activeParameters.map(param => {
-                          const selectedValue = getValueById(param, variant.parameterValues[param.id]);
-                          
-                          return (
-                            <TableCell key={param.id}>
-                              <Select
-                                value={variant.parameterValues[param.id] || ''}
-                                onValueChange={(v) => updateVariantParamValue(variant.id, param.id, v)}
-                              >
-                                <SelectTrigger className="h-8 text-sm">
-                                  <SelectValue placeholder="Select">
-                                    {selectedValue && (
-                                      <div className="flex items-center gap-2">
-                                        {selectedValue.hex && (
-                                          <div
-                                            className="w-3 h-3 rounded-full border"
-                                            style={{ backgroundColor: selectedValue.hex }}
-                                          />
-                                        )}
-                                        <span>{selectedValue.value}</span>
-                                      </div>
-                                    )}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {param.values.filter(v => v.isActive).map(v => (
-                                    <SelectItem key={v.id} value={v.id}>
-                                      <div className="flex items-center gap-2">
-                                        {v.hex && (
-                                          <div
-                                            className="w-4 h-4 rounded-full border"
-                                            style={{ backgroundColor: v.hex }}
-                                          />
-                                        )}
-                                        {v.value}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                          );
-                        })}
-                        
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={variant.quantity}
-                            onChange={(e) => updateVariant(variant.id, { quantity: parseInt(e.target.value) || 0 })}
-                            className="h-8 w-20 text-sm"
-                          />
-                        </TableCell>
-                        
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={variant.reservedQuantity}
-                            onChange={(e) => updateVariant(variant.id, { reservedQuantity: parseInt(e.target.value) || 0 })}
-                            className="h-8 w-20 text-sm"
-                          />
-                        </TableCell>
-                        
-                        <TableCell>
-                          <Input
-                            value={variant.skuOverride || ''}
-                            onChange={(e) => updateVariant(variant.id, { skuOverride: e.target.value.toUpperCase() })}
-                            placeholder={`${formData.sku || 'SKU'}-${idx + 1}`}
-                            className="h-8 text-sm font-mono"
-                          />
-                        </TableCell>
-                        
-                        <TableCell>
-                          <Switch
-                            checked={variant.isActive}
-                            onCheckedChange={(checked) => updateVariant(variant.id, { isActive: checked })}
-                          />
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => setSelectedVariant(selectedVariant === variant.id ? null : variant.id)}
-                            >
-                              <Settings2 className="w-4 h-4" />
-                            </Button>
+            <div className="space-y-4">
+              {formData.variants.map((variant, idx) => {
+                const isDuplicate = duplicateVariants.has(variant.id);
+                const variantDisplay = getVariantDisplay(variant);
+                const isExpanded = selectedVariant === variant.id;
+                const variantImages = variant.images || [];
+
+                return (
+                  <Collapsible
+                    key={variant.id}
+                    open={isExpanded}
+                    onOpenChange={() => setSelectedVariant(isExpanded ? null : variant.id)}
+                  >
+                    <div className={`border rounded-lg overflow-hidden ${isDuplicate ? 'border-destructive bg-destructive/5' : 'border-border/50'}`}>
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {activeParameters.map(param => {
+                                const selectedValue = getValueById(param, variant.parameterValues[param.id]);
+                                return (
+                                  <Select
+                                    key={param.id}
+                                    value={variant.parameterValues[param.id] || ''}
+                                    onValueChange={(v) => {
+                                      updateVariantParamValue(variant.id, param.id, v);
+                                    }}
+                                  >
+                                    <SelectTrigger 
+                                      className="h-8 text-sm w-auto min-w-[100px]"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <SelectValue placeholder={param.name}>
+                                        {selectedValue?.value || param.name}
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {param.values.filter(v => v.isActive !== false).map(v => (
+                                        <SelectItem key={v.id} value={v.id}>
+                                          {v.value}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <Label className="text-xs text-muted-foreground">Qty</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={variant.quantity}
+                                onChange={(e) => updateVariant(variant.id, { quantity: parseInt(e.target.value) || 0 })}
+                                className="h-8 w-20 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">{variantImages.length}</span>
+                            </div>
+
+                            <Switch
+                              checked={variant.isActive}
+                              onCheckedChange={(checked) => updateVariant(variant.id, { isActive: checked })}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => removeVariant(variant.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeVariant(variant.id);
+                              }}
                             >
                               <X className="w-4 h-4" />
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          ) : activeParameters.length > 0 ? (
-            <div className="p-8 rounded-lg border-2 border-dashed border-border/50 text-center">
-              <p className="text-muted-foreground mb-4">
-                No variants created yet. Use the buttons above to generate or add variants.
-              </p>
+                        </div>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <div className="p-4 pt-0 border-t border-border/50 space-y-4">
+                          {/* Variant Images */}
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium flex items-center gap-2">
+                              <ImageIcon className="w-4 h-4" />
+                              Variant Images
+                            </Label>
+                            <VariantImageUploader
+                              variantId={variant.id}
+                              variantLabel={variantDisplay}
+                              images={variantImages}
+                              onChange={(images) => updateVariantImages(variant.id, images)}
+                              shopId={shopId}
+                            />
+                          </div>
+
+                          {/* Additional Fields */}
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm">Reserved Quantity</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={variant.reservedQuantity}
+                                onChange={(e) => updateVariant(variant.id, { reservedQuantity: parseInt(e.target.value) || 0 })}
+                                className="h-8"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">Price Override (₹)</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={variant.priceOverride || ''}
+                                onChange={(e) => updateVariant(variant.id, { priceOverride: parseFloat(e.target.value) || undefined })}
+                                placeholder="Use base price"
+                                className="h-8"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm">Notes</Label>
+                            <Textarea
+                              value={variant.notes || ''}
+                              onChange={(e) => updateVariant(variant.id, { notes: e.target.value })}
+                              placeholder="Optional notes for this variant"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                );
+              })}
             </div>
           ) : (
-            <div className="p-8 rounded-lg bg-muted/30 text-center">
-              <p className="text-muted-foreground">
-                Define parameters with values first to create variants.
-              </p>
+            <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
+              <Package className="w-10 h-10 mx-auto mb-3 opacity-50" />
+              <p className="font-medium">No variants created</p>
+              <p className="text-sm">Use "Auto-Generate" or add variants manually</p>
             </div>
-          )}
-
-          {/* Variant Details Panel */}
-          {selectedVariant && (
-            <Collapsible open={true}>
-              <CollapsibleContent>
-                <div className="p-4 rounded-lg border border-border/50 bg-card/50 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Variant Details</h4>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => setSelectedVariant(null)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  {(() => {
-                    const variant = formData.variants.find(v => v.id === selectedVariant);
-                    if (!variant) return null;
-                    
-                    return (
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Price Override (₹)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={variant.priceOverride || ''}
-                            onChange={(e) => updateVariant(variant.id, { 
-                              priceOverride: e.target.value ? parseFloat(e.target.value) : undefined 
-                            })}
-                            placeholder="Use base price"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>Barcode</Label>
-                          <Input
-                            value={variant.barcode || ''}
-                            onChange={(e) => updateVariant(variant.id, { barcode: e.target.value })}
-                            placeholder="Optional barcode"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label>Weight (grams)</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={variant.weight || ''}
-                            onChange={(e) => updateVariant(variant.id, { 
-                              weight: e.target.value ? parseFloat(e.target.value) : undefined 
-                            })}
-                            placeholder="Optional"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2 md:col-span-2">
-                          <Label>Notes</Label>
-                          <Textarea
-                            value={variant.notes || ''}
-                            onChange={(e) => updateVariant(variant.id, { notes: e.target.value })}
-                            placeholder="Optional notes for this variant"
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
           )}
         </>
       )}

@@ -1,38 +1,17 @@
 import { useState } from 'react';
-import { Plus, X, GripVertical, Palette, List, Type, Hash, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, X, GripVertical, List, Type, Hash, ChevronDown, ChevronUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Parameter, ParameterValue } from '@/hooks/useItems';
 
-// VIBGYOR spectrum for color selection
-const VIBGYOR_COLORS = [
-  { name: 'Violet', hex: '#8B5CF6' },
-  { name: 'Indigo', hex: '#4F46E5' },
-  { name: 'Blue', hex: '#3B82F6' },
-  { name: 'Green', hex: '#22C55E' },
-  { name: 'Yellow', hex: '#EAB308' },
-  { name: 'Orange', hex: '#F97316' },
-  { name: 'Red', hex: '#EF4444' },
-  { name: 'Black', hex: '#000000' },
-  { name: 'White', hex: '#FFFFFF' },
-  { name: 'Gray', hex: '#6B7280' },
-  { name: 'Pink', hex: '#EC4899' },
-  { name: 'Brown', hex: '#92400E' },
-  { name: 'Navy', hex: '#1E3A5F' },
-  { name: 'Teal', hex: '#14B8A6' },
-  { name: 'Maroon', hex: '#7F1D1D' },
-  { name: 'Beige', hex: '#D4A574' },
-];
-
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
+// Removed 'color' type - all parameters are now text-based
 const PARAM_TYPES = [
   { value: 'list', label: 'List (predefined values)', icon: List },
-  { value: 'color', label: 'Color (with palette)', icon: Palette },
   { value: 'text', label: 'Text (free input)', icon: Type },
   { value: 'numeric', label: 'Numeric (numbers only)', icon: Hash },
 ];
@@ -47,7 +26,6 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
   const [newParamType, setNewParamType] = useState<Parameter['type']>('list');
   const [expandedParams, setExpandedParams] = useState<Set<string>>(new Set());
   const [newValueInputs, setNewValueInputs] = useState<Record<string, string>>({});
-  const [colorInputs, setColorInputs] = useState<Record<string, { name: string; hex: string }>>({});
 
   const toggleExpanded = (id: string) => {
     const newExpanded = new Set(expandedParams);
@@ -70,7 +48,7 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
     const newParam: Parameter = {
       id: generateId(),
       name: newParamName.trim(),
-      type: newParamType,
+      type: newParamType === 'color' ? 'list' : newParamType, // Force list type if color was somehow selected
       values: [],
       isActive: true,
       order: parameters.length
@@ -107,43 +85,21 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
     const param = parameters.find(p => p.id === parameterId);
     if (!param) return;
 
-    let newValue: ParameterValue;
+    const valueText = newValueInputs[parameterId]?.trim();
+    if (!valueText) return;
 
-    if (param.type === 'color') {
-      const colorInput = colorInputs[parameterId] || { name: '', hex: '#000000' };
-      if (!colorInput.name.trim()) return;
-
-      // Check for duplicate
-      if (param.values.some(v => 
-        v.value.toLowerCase() === colorInput.name.trim().toLowerCase() ||
-        v.hex?.toLowerCase() === colorInput.hex.toLowerCase()
-      )) return;
-
-      newValue = {
-        id: generateId(),
-        value: colorInput.name.trim(),
-        hex: colorInput.hex,
-        isActive: true
-      };
-
-      setColorInputs(prev => ({ ...prev, [parameterId]: { name: '', hex: '#000000' } }));
-    } else {
-      const valueText = newValueInputs[parameterId]?.trim();
-      if (!valueText) return;
-
-      // Check for duplicate
-      if (param.values.some(v => v.value.toLowerCase() === valueText.toLowerCase())) {
-        return;
-      }
-
-      newValue = {
-        id: generateId(),
-        value: valueText,
-        isActive: true
-      };
-
-      setNewValueInputs(prev => ({ ...prev, [parameterId]: '' }));
+    // Check for duplicate
+    if (param.values.some(v => v.value.toLowerCase() === valueText.toLowerCase())) {
+      return;
     }
+
+    const newValue: ParameterValue = {
+      id: generateId(),
+      value: valueText,
+      isActive: true
+    };
+
+    setNewValueInputs(prev => ({ ...prev, [parameterId]: '' }));
 
     onChange(parameters.map(p =>
       p.id === parameterId
@@ -170,7 +126,7 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
       <div>
         <h3 className="text-lg font-semibold mb-2">Product Parameters</h3>
         <p className="text-sm text-muted-foreground">
-          Define custom attributes like Size, Color, Material, etc. Each parameter can have multiple values.
+          Define custom attributes like Size, Color, Material, etc. Each parameter can have multiple values (LOV).
         </p>
       </div>
 
@@ -198,7 +154,7 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
                       <div>
                         <p className="font-medium">{param.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {param.values.length} value{param.values.length !== 1 ? 's' : ''} • {PARAM_TYPES.find(t => t.value === param.type)?.label}
+                          {param.values.length} value{param.values.length !== 1 ? 's' : ''} • {PARAM_TYPES.find(t => t.value === param.type)?.label || 'List'}
                         </p>
                       </div>
                     </div>
@@ -206,29 +162,16 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
                     {/* Preview values */}
                     {param.values.length > 0 && !isExpanded && (
                       <div className="flex items-center gap-1">
-                        {param.type === 'color' ? (
-                          <div className="flex -space-x-1">
-                            {param.values.slice(0, 5).map((v) => (
-                              <div
-                                key={v.id}
-                                className="w-5 h-5 rounded-full border-2 border-background"
-                                style={{ backgroundColor: v.hex }}
-                                title={v.value}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex gap-1">
-                            {param.values.slice(0, 3).map((v) => (
-                              <span key={v.id} className="px-2 py-0.5 rounded bg-muted text-xs">
-                                {v.value}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {param.values.length > (param.type === 'color' ? 5 : 3) && (
+                        <div className="flex gap-1">
+                          {param.values.slice(0, 3).map((v) => (
+                            <span key={v.id} className="px-2 py-0.5 rounded bg-muted text-xs">
+                              {v.value}
+                            </span>
+                          ))}
+                        </div>
+                        {param.values.length > 3 && (
                           <span className="text-xs text-muted-foreground">
-                            +{param.values.length - (param.type === 'color' ? 5 : 3)}
+                            +{param.values.length - 3}
                           </span>
                         )}
                       </div>
@@ -275,97 +218,24 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
 
                 <CollapsibleContent>
                   <div className="p-4 pt-0 border-t border-border/50 space-y-4">
-                    {/* Add Value Input */}
-                    {param.type === 'color' ? (
-                      <div className="space-y-3">
-                        <p className="text-xs text-muted-foreground">Quick select from palette:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {VIBGYOR_COLORS.map((color) => (
-                            <button
-                              key={color.hex}
-                              type="button"
-                              onClick={() => setColorInputs(prev => ({
-                                ...prev,
-                                [param.id]: { name: color.name, hex: color.hex }
-                              }))}
-                              className={`w-7 h-7 rounded-full border-2 transition-all hover:scale-110
-                                ${colorInputs[param.id]?.hex === color.hex ? 'border-primary ring-2 ring-primary/30' : 'border-border'}
-                              `}
-                              style={{ backgroundColor: color.hex }}
-                              title={color.name}
-                            />
-                          ))}
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Input
-                            value={colorInputs[param.id]?.name || ''}
-                            onChange={(e) => setColorInputs(prev => ({
-                              ...prev,
-                              [param.id]: { ...prev[param.id], name: e.target.value, hex: prev[param.id]?.hex || '#000000' }
-                            }))}
-                            placeholder="Color name (e.g., Sky Blue)"
-                            className="flex-1"
-                          />
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <button
-                                type="button"
-                                className="w-10 h-10 rounded-lg border border-border shrink-0"
-                                style={{ backgroundColor: colorInputs[param.id]?.hex || '#000000' }}
-                              />
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-3" align="end">
-                              <div className="space-y-2">
-                                <input
-                                  type="color"
-                                  value={colorInputs[param.id]?.hex || '#000000'}
-                                  onChange={(e) => setColorInputs(prev => ({
-                                    ...prev,
-                                    [param.id]: { ...prev[param.id], name: prev[param.id]?.name || '', hex: e.target.value }
-                                  }))}
-                                  className="w-full h-32 cursor-pointer rounded"
-                                />
-                                <Input
-                                  value={colorInputs[param.id]?.hex || '#000000'}
-                                  onChange={(e) => setColorInputs(prev => ({
-                                    ...prev,
-                                    [param.id]: { ...prev[param.id], name: prev[param.id]?.name || '', hex: e.target.value }
-                                  }))}
-                                  placeholder="#000000"
-                                  className="font-mono"
-                                />
-                              </div>
-                            </PopoverContent>
-                          </Popover>
-                          <Button
-                            type="button"
-                            onClick={() => addParameterValue(param.id)}
-                            disabled={!colorInputs[param.id]?.name?.trim()}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Input
-                          value={newValueInputs[param.id] || ''}
-                          onChange={(e) => setNewValueInputs(prev => ({ ...prev, [param.id]: e.target.value }))}
-                          placeholder={`Add ${param.name.toLowerCase()} value`}
-                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameterValue(param.id))}
-                          type={param.type === 'numeric' ? 'number' : 'text'}
-                        />
-                        <Button
-                          type="button"
-                          onClick={() => addParameterValue(param.id)}
-                          disabled={!newValueInputs[param.id]?.trim()}
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Add
-                        </Button>
-                      </div>
-                    )}
+                    {/* Add Value Input - Always text-based */}
+                    <div className="flex gap-2">
+                      <Input
+                        value={newValueInputs[param.id] || ''}
+                        onChange={(e) => setNewValueInputs(prev => ({ ...prev, [param.id]: e.target.value }))}
+                        placeholder={`Add ${param.name.toLowerCase()} value`}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameterValue(param.id))}
+                        type={param.type === 'numeric' ? 'number' : 'text'}
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => addParameterValue(param.id)}
+                        disabled={!newValueInputs[param.id]?.trim()}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add
+                      </Button>
+                    </div>
 
                     {/* Values List */}
                     {param.values.length > 0 ? (
@@ -375,12 +245,6 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
                             key={v.id}
                             className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted border border-border/50"
                           >
-                            {v.hex && (
-                              <div
-                                className="w-4 h-4 rounded-full border border-border/50"
-                                style={{ backgroundColor: v.hex }}
-                              />
-                            )}
                             <span className="text-sm">{v.value}</span>
                             <button
                               type="button"
@@ -410,7 +274,7 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
           <Input
             value={newParamName}
             onChange={(e) => setNewParamName(e.target.value)}
-            placeholder="Parameter name (e.g., Size, Material)"
+            placeholder="Parameter name (e.g., Size, Color, Material)"
             className="flex-1"
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameter())}
           />
@@ -426,7 +290,7 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
                 <SelectItem key={type.value} value={type.value}>
                   <div className="flex items-center gap-2">
                     <type.icon className="w-4 h-4" />
-                    <span>{type.label.split(' ')[0]}</span>
+                    {type.label}
                   </div>
                 </SelectItem>
               ))}
@@ -444,10 +308,10 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
       </div>
 
       {parameters.length === 0 && (
-        <div className="p-6 rounded-lg bg-muted/30 text-center">
-          <p className="text-muted-foreground">
-            No parameters defined yet. Parameters are optional but help organize variants.
-          </p>
+        <div className="text-center py-8 text-muted-foreground">
+          <List className="w-10 h-10 mx-auto mb-3 opacity-50" />
+          <p className="font-medium">No parameters defined</p>
+          <p className="text-sm">Add parameters to enable variant management</p>
         </div>
       )}
     </div>

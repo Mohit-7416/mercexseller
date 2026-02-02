@@ -31,6 +31,12 @@ export interface VariantDetail {
   barcode?: string;
   weight?: number;
   isActive: boolean;
+  images?: Array<{
+    id: string;
+    url: string;
+    isPrimary: boolean;
+    order: number;
+  }>;
 }
 
 export interface ItemDimensions {

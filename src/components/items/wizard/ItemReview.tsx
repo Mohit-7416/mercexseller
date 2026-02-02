@@ -33,6 +33,10 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
     ? formData.variants.reduce((sum, v) => sum + v.quantity, 0)
     : formData.singleQuantity;
 
+  const totalImages = formData.hasVariants
+    ? formData.variants.reduce((sum, v) => sum + (v.images?.length || 0), 0)
+    : 0;
+
   const activeParameters = formData.parameters.filter(p => p.isActive && p.values.length > 0);
 
   const getVariantDisplay = (variant: typeof formData.variants[0]) => {
@@ -47,7 +51,19 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
     return parts.join(' / ');
   };
 
-  const primaryImage = formData.images.find(img => img.isPrimary) || formData.images[0];
+  // Get primary image from first variant that has images
+  const getPrimaryImage = () => {
+    if (formData.hasVariants) {
+      for (const variant of formData.variants) {
+        const variantImages = variant.images || [];
+        const primary = variantImages.find(img => img.isPrimary) || variantImages[0];
+        if (primary) return primary;
+      }
+    }
+    return null;
+  };
+
+  const primaryImage = getPrimaryImage();
 
   return (
     <div className="space-y-6">
@@ -73,14 +89,17 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
                 className="w-full h-full object-cover"
               />
             ) : (
-              <Package className="w-16 h-16 text-muted-foreground" />
+              <div className="text-center">
+                <Package className="w-16 h-16 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No images uploaded</p>
+              </div>
             )}
           </div>
 
-          {formData.images.length > 1 && (
+          {totalImages > 0 && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <ImageIcon className="w-4 h-4" />
-              {formData.images.length} images uploaded
+              {totalImages} images across variants
             </div>
           )}
         </div>
@@ -126,13 +145,6 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
             )}
           </div>
 
-          {formData.sku && (
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
-              <p className="text-xs text-muted-foreground">Base SKU</p>
-              <p className="font-mono font-medium">{formData.sku}</p>
-            </div>
-          )}
-
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
             <p className="text-xs text-muted-foreground">Total Stock</p>
             <p className="text-2xl font-bold text-primary">{totalQuantity} units</p>
@@ -166,12 +178,6 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
                       key={v.id}
                       className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-card border border-border/50 text-sm"
                     >
-                      {v.hex && (
-                        <div
-                          className="w-3 h-3 rounded-full border border-border/50"
-                          style={{ backgroundColor: v.hex }}
-                        />
-                      )}
                       {v.value}
                     </div>
                   ))}
@@ -192,10 +198,8 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
           <div className="grid gap-2 max-h-[300px] overflow-y-auto">
             {formData.variants.map((variant, idx) => {
               const display = getVariantDisplay(variant);
-              const colorParam = activeParameters.find(p => p.type === 'color');
-              const colorValue = colorParam
-                ? colorParam.values.find(v => v.id === variant.parameterValues[colorParam.id])
-                : null;
+              const variantImages = variant.images || [];
+              const primaryVariantImage = variantImages.find(img => img.isPrimary) || variantImages[0];
 
               return (
                 <div
@@ -206,21 +210,29 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
                       : 'bg-muted/30 border-border/30 opacity-60'
                   }`}
                 >
-                  {colorValue?.hex && (
-                    <div
-                      className="w-8 h-8 rounded-full border border-border shrink-0"
-                      style={{ backgroundColor: colorValue.hex }}
-                    />
-                  )}
+                  {/* Variant Image Thumbnail */}
+                  <div className="w-10 h-10 rounded bg-muted overflow-hidden shrink-0">
+                    {primaryVariantImage ? (
+                      <img
+                        src={primaryVariantImage.url}
+                        alt={display}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">
                       {display || `Variant ${idx + 1}`}
                     </p>
-                    {variant.skuOverride && (
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {variant.skuOverride}
-                      </p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {variantImages.length} image{variantImages.length !== 1 ? 's' : ''}
+                      {variant.priceOverride && ` • ₹${variant.priceOverride}`}
+                    </p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-bold">{variant.quantity}</p>
@@ -250,6 +262,13 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
         <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/10 text-secondary-foreground">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm">Quantity is set to 0. The item will show as out of stock.</span>
+        </div>
+      )}
+
+      {formData.hasVariants && totalImages === 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/10 text-secondary-foreground">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm">No images uploaded for any variant. Consider adding images for better presentation.</span>
         </div>
       )}
     </div>
