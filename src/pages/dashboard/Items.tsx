@@ -8,8 +8,9 @@ import { useCategories } from "@/hooks/useCategories";
 import { useShop } from "@/contexts/ShopContext";
 import { useToast } from "@/hooks/use-toast";
 import ItemCard from "@/components/items/ItemCard";
-import ItemFormModal from "@/components/items/ItemFormModal";
+import ItemWizard from "@/components/items/ItemWizard";
 import ItemViewModal from "@/components/items/ItemViewModal";
+import DuplicateItemDialog, { DuplicateAction } from "@/components/items/DuplicateItemDialog";
 
 const Items = () => {
   const { items, loading, createItem, updateItem, deleteItem } = useItems();
@@ -18,16 +19,28 @@ const Items = () => {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [showFormModal, setShowFormModal] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  // Duplicate detection state
+  const [duplicateDialog, setDuplicateDialog] = useState<{
+    open: boolean;
+    itemName: string;
+    existingItemId: string;
+    pendingData: Partial<Item> | null;
+  }>({
+    open: false,
+    itemName: '',
+    existingItemId: '',
+    pendingData: null,
+  });
+
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (item.sku && item.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+    (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getCategoryName = (categoryId: string | null, dimensions?: any) => {
@@ -48,14 +61,14 @@ const Items = () => {
     return sub?.name;
   };
 
-  const openAddModal = () => {
+  const openAddWizard = () => {
     setSelectedItem(null);
-    setShowFormModal(true);
+    setShowWizard(true);
   };
 
-  const openEditModal = (item: Item) => {
+  const openEditWizard = (item: Item) => {
     setSelectedItem(item);
-    setShowFormModal(true);
+    setShowWizard(true);
   };
 
   const openViewModal = (item: Item) => {
@@ -63,7 +76,47 @@ const Items = () => {
     setShowViewModal(true);
   };
 
+  // Check for duplicate item by name
+  const findDuplicateItem = (name: string, excludeId?: string): Item | undefined => {
+    return items.find(item => 
+      item.name.toLowerCase().trim() === name.toLowerCase().trim() &&
+      item.id !== excludeId
+    );
+  };
+
   const handleSave = async (itemData: Partial<Item>) => {
+    // Check for duplicate when creating new item or changing name
+    if (!selectedItem) {
+      const duplicate = findDuplicateItem(itemData.name || '');
+      if (duplicate) {
+        setDuplicateDialog({
+          open: true,
+          itemName: itemData.name || '',
+          existingItemId: duplicate.id,
+          pendingData: itemData,
+        });
+        return;
+      }
+    } else {
+      // Editing existing item - check if name changed to a duplicate
+      if (itemData.name && itemData.name.toLowerCase().trim() !== selectedItem.name.toLowerCase().trim()) {
+        const duplicate = findDuplicateItem(itemData.name, selectedItem.id);
+        if (duplicate) {
+          setDuplicateDialog({
+            open: true,
+            itemName: itemData.name,
+            existingItemId: duplicate.id,
+            pendingData: itemData,
+          });
+          return;
+        }
+      }
+    }
+
+    await performSave(itemData);
+  };
+
+  const performSave = async (itemData: Partial<Item>) => {
     setSaving(true);
     try {
       if (selectedItem) {
@@ -75,7 +128,7 @@ const Items = () => {
         if (error) throw error;
         toast({ title: "Item created", description: "New item has been added to your inventory." });
       }
-      setShowFormModal(false);
+      setShowWizard(false);
       setSelectedItem(null);
     } catch (error) {
       toast({
@@ -86,6 +139,61 @@ const Items = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDuplicateAction = async (action: DuplicateAction) => {
+    const { existingItemId, pendingData } = duplicateDialog;
+
+    if (action === 'cancel') {
+      setDuplicateDialog({ open: false, itemName: '', existingItemId: '', pendingData: null });
+      return;
+    }
+
+    if (action === 'update') {
+      // Update existing item with new data
+      setSaving(true);
+      try {
+        const { error } = await updateItem(existingItemId, pendingData!);
+        if (error) throw error;
+        toast({ title: "Item updated", description: "Existing item has been updated with new data." });
+        setShowWizard(false);
+        setSelectedItem(null);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "An error occurred",
+          variant: "destructive"
+        });
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    if (action === 'delete') {
+      // Delete existing item then create new
+      setSaving(true);
+      try {
+        const { error: deleteError } = await deleteItem(existingItemId);
+        if (deleteError) throw deleteError;
+
+        const { error: createError } = await createItem(pendingData!);
+        if (createError) throw createError;
+
+        toast({ title: "Item replaced", description: "Existing item deleted and new item created." });
+        setShowWizard(false);
+        setSelectedItem(null);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "An error occurred",
+          variant: "destructive"
+        });
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    setDuplicateDialog({ open: false, itemName: '', existingItemId: '', pendingData: null });
   };
 
   const handleDelete = async (id: string) => {
@@ -107,7 +215,7 @@ const Items = () => {
 
   const handleEditFromView = () => {
     setShowViewModal(false);
-    setShowFormModal(true);
+    setShowWizard(true);
   };
 
   if (loading) {
@@ -126,7 +234,7 @@ const Items = () => {
           <h1 className="text-3xl font-bold mb-2">Items</h1>
           <p className="text-muted-foreground">Manage your inventory with variants and images</p>
         </div>
-        <Button variant="hero" className="gap-2" onClick={openAddModal}>
+        <Button variant="hero" className="gap-2" onClick={openAddWizard}>
           <Plus className="w-4 h-4" />
           Add Item
         </Button>
@@ -140,7 +248,7 @@ const Items = () => {
       >
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search by name, description, or SKU..."
+          placeholder="Search by name or description..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 bg-card/50 border-border/50"
@@ -153,9 +261,9 @@ const Items = () => {
           <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">No Items Yet</h3>
           <p className="text-muted-foreground mb-4">
-            Add your first item with images, colors, and variants.
+            Add your first item with parameters, variants, and images.
           </p>
-          <Button variant="hero" onClick={openAddModal}>
+          <Button variant="hero" onClick={openAddWizard}>
             <Plus className="w-4 h-4 mr-2" />
             Add First Item
           </Button>
@@ -178,7 +286,7 @@ const Items = () => {
                 item={item}
                 categoryName={getCategoryName(item.category_id, item.dimensions)}
                 subcategoryName={getSubcategoryName(item.subcategory_id, item.dimensions)}
-                onEdit={() => openEditModal(item)}
+                onEdit={() => openEditWizard(item)}
                 onView={() => openViewModal(item)}
                 onDelete={() => handleDelete(item.id)}
                 deleting={deleting === item.id}
@@ -191,7 +299,7 @@ const Items = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 * filteredItems.length }}
-            onClick={openAddModal}
+            onClick={openAddWizard}
             className="p-5 rounded-xl border-2 border-dashed border-border/50 hover:border-primary/50 hover:bg-card/30 transition-all duration-300 flex flex-col items-center justify-center min-h-[300px] group"
           >
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
@@ -212,12 +320,12 @@ const Items = () => {
         </div>
       )}
 
-      {/* Form Modal */}
+      {/* Item Wizard */}
       {currentShop && (
-        <ItemFormModal
-          open={showFormModal}
+        <ItemWizard
+          open={showWizard}
           onClose={() => {
-            setShowFormModal(false);
+            setShowWizard(false);
             setSelectedItem(null);
           }}
           onSave={handleSave}
@@ -240,6 +348,14 @@ const Items = () => {
         categoryName={getCategoryName(selectedItem?.category_id || null, selectedItem?.dimensions)}
         subcategoryName={getSubcategoryName(selectedItem?.subcategory_id || null, selectedItem?.dimensions)}
         onEdit={handleEditFromView}
+      />
+
+      {/* Duplicate Item Dialog */}
+      <DuplicateItemDialog
+        open={duplicateDialog.open}
+        itemName={duplicateDialog.itemName}
+        existingItemId={duplicateDialog.existingItemId}
+        onAction={handleDuplicateAction}
       />
     </div>
   );
