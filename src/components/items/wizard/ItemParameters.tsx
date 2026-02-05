@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, GripVertical, List, Type, Hash, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, X, GripVertical, List, ChevronDown, ChevronUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,11 +9,9 @@ import { Parameter, ParameterValue } from '@/hooks/useItems';
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-// Removed 'color' type - all parameters are now text-based
+// Only LOV (List) type - no free text or numeric input
 const PARAM_TYPES = [
-  { value: 'list', label: 'List (predefined values)', icon: List },
-  { value: 'text', label: 'Text (free input)', icon: Type },
-  { value: 'numeric', label: 'Numeric (numbers only)', icon: Hash },
+  { value: 'list', label: 'List of Values (LOV)', icon: List },
 ];
 
 interface ItemParametersProps {

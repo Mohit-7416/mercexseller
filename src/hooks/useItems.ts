@@ -27,6 +27,7 @@ export interface VariantDetail {
   soldQuantity: number;
   skuOverride?: string;
   priceOverride?: number;
+  costPriceOverride?: number;
   notes?: string;
   barcode?: string;
   weight?: number;

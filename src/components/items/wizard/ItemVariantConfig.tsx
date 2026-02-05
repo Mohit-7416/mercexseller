@@ -444,6 +444,32 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
 
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <Label className="text-xs text-muted-foreground">Price</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={variant.priceOverride ?? formData.price}
+                                onChange={(e) => updateVariant(variant.id, { priceOverride: parseFloat(e.target.value) || 0 })}
+                                className="h-8 w-24 text-sm"
+                                placeholder={`₹${formData.price}`}
+                              />
+                            </div>
+                            
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <Label className="text-xs text-muted-foreground">Cost</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={variant.costPriceOverride ?? formData.cost_price ?? ''}
+                                onChange={(e) => updateVariant(variant.id, { costPriceOverride: parseFloat(e.target.value) || undefined })}
+                                className="h-8 w-24 text-sm"
+                                placeholder={formData.cost_price ? `₹${formData.cost_price}` : 'Cost'}
+                              />
+                            </div>
+                            
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                               <Label className="text-xs text-muted-foreground">Qty</Label>
                               <Input
                                 type="number"
