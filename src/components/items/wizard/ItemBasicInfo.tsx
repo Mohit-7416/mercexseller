@@ -8,19 +8,6 @@ import { WizardFormData } from '../ItemWizard';
 
 const OTHERS_ID = 'others';
 
-const UNITS_OF_MEASURE = [
-  { value: 'pieces', label: 'Pieces' },
-  { value: 'kg', label: 'Kilograms' },
-  { value: 'g', label: 'Grams' },
-  { value: 'l', label: 'Liters' },
-  { value: 'ml', label: 'Milliliters' },
-  { value: 'm', label: 'Meters' },
-  { value: 'cm', label: 'Centimeters' },
-  { value: 'box', label: 'Box' },
-  { value: 'pack', label: 'Pack' },
-  { value: 'set', label: 'Set' },
-];
-
 interface ItemBasicInfoProps {
   formData: WizardFormData;
   updateFormData: (updates: Partial<WizardFormData>) => void;
@@ -157,8 +144,8 @@ const ItemBasicInfo = ({
         )}
       </div>
 
-      {/* Pricing & Unit */}
-      <div className="grid md:grid-cols-3 gap-4">
+      {/* Pricing */}
+      <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="price">Selling Price (₹) *</Label>
           <Input
@@ -185,25 +172,6 @@ const ItemBasicInfo = ({
             onChange={(e) => updateFormData({ cost_price: e.target.value })}
             placeholder="Optional"
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Unit of Measure</Label>
-          <Select
-            value={formData.unitOfMeasure}
-            onValueChange={(value) => updateFormData({ unitOfMeasure: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select unit" />
-            </SelectTrigger>
-            <SelectContent>
-              {UNITS_OF_MEASURE.map((unit) => (
-                <SelectItem key={unit.value} value={unit.value}>
-                  {unit.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
 

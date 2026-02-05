@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Zap, Package, AlertCircle, Settings2, Trash2, Lock, ImageIcon } from 'lucide-react';
+import { Plus, X, Zap, Package, AlertCircle, Settings2, Trash2, Lock, ImageIcon, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -454,10 +454,24 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                               />
                             </div>
                             
-                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">{variantImages.length}</span>
-                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-1.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedVariant(variant.id);
+                              }}
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span className="text-xs">Images</span>
+                              {variantImages.length > 0 && (
+                                <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full">
+                                  {variantImages.length}
+                                </span>
+                              )}
+                            </Button>
 
                             <Switch
                               checked={variant.isActive}
