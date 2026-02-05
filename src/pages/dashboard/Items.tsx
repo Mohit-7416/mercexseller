@@ -11,6 +11,7 @@ import ItemCard from "@/components/items/ItemCard";
 import ItemWizard from "@/components/items/ItemWizard";
 import ItemViewModal from "@/components/items/ItemViewModal";
 import DuplicateItemDialog, { DuplicateAction } from "@/components/items/DuplicateItemDialog";
+import ConfirmActionDialog, { ActionType } from "@/components/items/ConfirmActionDialog";
 
 const Items = () => {
   const { items, loading, createItem, updateItem, deleteItem } = useItems();
@@ -36,6 +37,20 @@ const Items = () => {
     itemName: '',
     existingItemId: '',
     pendingData: null,
+  });
+
+  // Confirmation dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    actionType: ActionType;
+    itemId: string;
+    itemName: string;
+    pendingData?: Partial<Item>;
+  }>({
+    open: false,
+    actionType: 'delete',
+    itemId: '',
+    itemName: '',
   });
 
   const filteredItems = items.filter(item =>
@@ -97,6 +112,8 @@ const Items = () => {
         });
         return;
       }
+      // No duplicate, proceed with creation (no confirmation needed for new items)
+      await performSave(itemData);
     } else {
       // Editing existing item - check if name changed to a duplicate
       if (itemData.name && itemData.name.toLowerCase().trim() !== selectedItem.name.toLowerCase().trim()) {
@@ -111,9 +128,16 @@ const Items = () => {
           return;
         }
       }
+      
+      // Show update confirmation dialog
+      setConfirmDialog({
+        open: true,
+        actionType: 'update',
+        itemId: selectedItem.id,
+        itemName: selectedItem.name,
+        pendingData: itemData,
+      });
     }
-
-    await performSave(itemData);
   };
 
   const performSave = async (itemData: Partial<Item>) => {
@@ -196,21 +220,44 @@ const Items = () => {
     setDuplicateDialog({ open: false, itemName: '', existingItemId: '', pendingData: null });
   };
 
-  const handleDelete = async (id: string) => {
-    setDeleting(id);
-    try {
-      const { error } = await deleteItem(id);
-      if (error) throw error;
-      toast({ title: "Item deleted", description: "Item has been removed from your inventory." });
-    } catch (error) {
-      toast({
-        title: "Error deleting item",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setDeleting(null);
+  // Trigger delete confirmation
+  const handleDeleteRequest = (id: string, name: string) => {
+    setConfirmDialog({
+      open: true,
+      actionType: 'delete',
+      itemId: id,
+      itemName: name,
+    });
+  };
+
+  // Perform delete after confirmation
+  const handleConfirmAction = async () => {
+    const { actionType, itemId, pendingData } = confirmDialog;
+
+    if (actionType === 'delete') {
+      setDeleting(itemId);
+      try {
+        const { error } = await deleteItem(itemId);
+        if (error) throw error;
+        toast({ title: "Item deleted", description: "Item has been removed from your inventory." });
+      } catch (error) {
+        toast({
+          title: "Error deleting item",
+          description: error instanceof Error ? error.message : "An error occurred",
+          variant: "destructive"
+        });
+      } finally {
+        setDeleting(null);
+      }
+    } else if (actionType === 'update' && pendingData) {
+      await performSave(pendingData);
     }
+
+    setConfirmDialog({ open: false, actionType: 'delete', itemId: '', itemName: '' });
+  };
+
+  const handleCancelConfirm = () => {
+    setConfirmDialog({ open: false, actionType: 'delete', itemId: '', itemName: '' });
   };
 
   const handleEditFromView = () => {
@@ -288,7 +335,7 @@ const Items = () => {
                 subcategoryName={getSubcategoryName(item.subcategory_id, item.dimensions)}
                 onEdit={() => openEditWizard(item)}
                 onView={() => openViewModal(item)}
-                onDelete={() => handleDelete(item.id)}
+                onDelete={() => handleDeleteRequest(item.id, item.name)}
                 deleting={deleting === item.id}
               />
             </motion.div>
@@ -356,6 +403,16 @@ const Items = () => {
         itemName={duplicateDialog.itemName}
         existingItemId={duplicateDialog.existingItemId}
         onAction={handleDuplicateAction}
+      />
+
+      {/* Confirm Action Dialog (Delete/Update) */}
+      <ConfirmActionDialog
+        open={confirmDialog.open}
+        actionType={confirmDialog.actionType}
+        itemName={confirmDialog.itemName}
+        onConfirm={handleConfirmAction}
+        onCancel={handleCancelConfirm}
+        loading={confirmDialog.actionType === 'delete' ? deleting === confirmDialog.itemId : saving}
       />
     </div>
   );
