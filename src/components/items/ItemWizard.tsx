@@ -37,6 +37,9 @@ export interface WizardFormData {
   variants: VariantDetail[];
   // For single SKU (no variants)
   singleQuantity: number;
+  singleSoldQuantity: number;
+  singleNotes: string;
+  singleImages: ImageItem[];
 }
 
 const STEPS = [
@@ -85,6 +88,9 @@ const ItemWizard = ({
     hasVariants: false,
     variants: [],
     singleQuantity: 0,
+    singleSoldQuantity: 0,
+    singleNotes: '',
+    singleImages: [],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -127,6 +133,9 @@ const ItemWizard = ({
         hasVariants: existingVariants.length > 0,
         variants: existingVariants,
         singleQuantity: existingVariants.length === 0 ? item.quantity : 0,
+        singleSoldQuantity: savedData.singleSoldQuantity || 0,
+        singleNotes: savedData.singleNotes || '',
+        singleImages: savedData.singleImages || [],
       });
     } else {
       // Reset for new item
@@ -145,6 +154,9 @@ const ItemWizard = ({
         hasVariants: false,
         variants: [],
         singleQuantity: 0,
+        singleSoldQuantity: 0,
+        singleNotes: '',
+        singleImages: [],
       });
       setCurrentStep(0);
     }
@@ -234,7 +246,7 @@ const ItemWizard = ({
       ? formData.variants.reduce((sum, v) => sum + v.quantity, 0)
       : formData.singleQuantity;
 
-    // Collect all images from variants
+    // Collect all images from variants or single SKU
     const allImageUrls: string[] = [];
     if (formData.hasVariants) {
       formData.variants.forEach(v => {
@@ -244,6 +256,13 @@ const ItemWizard = ({
             allImageUrls.push(img.url);
           }
         });
+      });
+    } else {
+      // Collect single SKU images
+      formData.singleImages.forEach(img => {
+        if (!allImageUrls.includes(img.url)) {
+          allImageUrls.push(img.url);
+        }
       });
     }
 
@@ -267,6 +286,9 @@ const ItemWizard = ({
         variants: formData.hasVariants ? formData.variants : [],
         hasVariants: formData.hasVariants,
         singleQuantity: formData.hasVariants ? 0 : formData.singleQuantity,
+        singleSoldQuantity: formData.hasVariants ? 0 : formData.singleSoldQuantity,
+        singleNotes: formData.hasVariants ? '' : formData.singleNotes,
+        singleImages: formData.hasVariants ? [] : formData.singleImages,
       }
     };
 
@@ -384,15 +406,17 @@ const ItemWizard = ({
 
         {/* Navigation */}
         <div className="shrink-0 flex gap-3 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 0 || saving}
-            className="gap-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back
-          </Button>
+          {currentStep > 0 && (
+            <Button
+              variant="outline"
+              onClick={handleBack}
+              disabled={saving}
+              className="gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Back
+            </Button>
+          )}
           
           <div className="flex-1" />
           

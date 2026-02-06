@@ -73,9 +73,8 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
     ? formData.variants.reduce((sum, v) => sum + v.quantity, 0)
     : formData.singleQuantity;
 
-  const totalReserved = formData.variants.reduce((sum, v) => sum + v.reservedQuantity, 0);
   const totalSold = formData.variants.reduce((sum, v) => sum + v.soldQuantity, 0);
-  const totalAvailable = totalQuantity - totalReserved;
+  const totalAvailable = totalQuantity - totalSold;
 
   // Generate all variant combinations
   const generateAllVariants = () => {
@@ -100,7 +99,6 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
             id: generateId(),
             parameterValues: { ...currentCombination },
             quantity: 0,
-            reservedQuantity: 0,
             soldQuantity: 0,
             isActive: true,
             images: []
@@ -132,7 +130,6 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
       id: generateId(),
       parameterValues: {},
       quantity: 0,
-      reservedQuantity: 0,
       soldQuantity: 0,
       isActive: true,
       images: []
@@ -304,13 +301,30 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
 
       {/* Single SKU Mode */}
       {!formData.hasVariants && activeParameters.length > 0 && (
-        <div className="p-6 rounded-lg border border-border/50 space-y-4">
+        <div className="p-6 rounded-lg border border-border/50 space-y-6">
           <div className="flex items-center gap-3">
             <Package className="w-5 h-5 text-primary" />
-            <h4 className="font-medium">Single Item Quantity</h4>
+            <h4 className="font-medium">Single Item Inventory</h4>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-4">
+          {/* Stock Summary */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="text-xs text-muted-foreground">Total Stock</p>
+              <p className="text-xl font-bold text-primary">{formData.singleQuantity}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/20">
+              <p className="text-xs text-muted-foreground">Available</p>
+              <p className="text-xl font-bold text-secondary">{formData.singleQuantity - formData.singleSoldQuantity}</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+              <p className="text-xs text-muted-foreground">Sold</p>
+              <p className="text-xl font-bold">{formData.singleSoldQuantity}</p>
+            </div>
+          </div>
+
+          {/* Quantity Input */}
+          <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Available Quantity</Label>
               <Input
@@ -324,6 +338,41 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                 <p className="text-xs text-destructive">{errors.singleQuantity}</p>
               )}
             </div>
+            <div className="space-y-2">
+              <Label>Sold Quantity</Label>
+              <Input
+                type="number"
+                min="0"
+                value={formData.singleSoldQuantity}
+                onChange={(e) => updateFormData({ singleSoldQuantity: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+          </div>
+
+          {/* Images */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Item Images
+            </Label>
+            <VariantImageUploader
+              variantId="single"
+              variantLabel="Single Item"
+              images={formData.singleImages}
+              onChange={(images) => updateFormData({ singleImages: images })}
+              shopId={shopId}
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label>Notes</Label>
+            <Textarea
+              value={formData.singleNotes}
+              onChange={(e) => updateFormData({ singleNotes: e.target.value })}
+              placeholder="Add notes for this item (e.g., special handling, supplier info)"
+              rows={2}
+            />
           </div>
         </div>
       )}
@@ -332,7 +381,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
       {formData.hasVariants && activeParameters.length > 0 && (
         <>
           {/* Inventory Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
               <p className="text-xs text-muted-foreground">Total Stock</p>
               <p className="text-xl font-bold text-primary">{totalQuantity}</p>
@@ -340,10 +389,6 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
             <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/20">
               <p className="text-xs text-muted-foreground">Available</p>
               <p className="text-xl font-bold text-secondary">{totalAvailable}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
-              <p className="text-xs text-muted-foreground">Reserved</p>
-              <p className="text-xl font-bold">{totalReserved}</p>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
               <p className="text-xs text-muted-foreground">Sold</p>
@@ -538,38 +583,13 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                             />
                           </div>
 
-                          {/* Additional Fields */}
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label className="text-sm">Reserved Quantity</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                value={variant.reservedQuantity}
-                                onChange={(e) => updateVariant(variant.id, { reservedQuantity: parseInt(e.target.value) || 0 })}
-                                className="h-8"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm">Price Override (₹)</Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={variant.priceOverride || ''}
-                                onChange={(e) => updateVariant(variant.id, { priceOverride: parseFloat(e.target.value) || undefined })}
-                                placeholder="Use base price"
-                                className="h-8"
-                              />
-                            </div>
-                          </div>
-
+                          {/* Notes - Visible */}
                           <div className="space-y-2">
                             <Label className="text-sm">Notes</Label>
                             <Textarea
                               value={variant.notes || ''}
                               onChange={(e) => updateVariant(variant.id, { notes: e.target.value })}
-                              placeholder="Optional notes for this variant"
+                              placeholder="Add notes for this variant (e.g., special handling, supplier info)"
                               rows={2}
                             />
                           </div>
