@@ -26,7 +26,6 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
       id: generateId(),
       parameterValues: {},
       quantity: 0,
-      reservedQuantity: 0,
       soldQuantity: 0,
       isActive: true
     };

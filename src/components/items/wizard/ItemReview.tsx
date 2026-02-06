@@ -1,4 +1,4 @@
-import { Package, Check, AlertCircle, ImageIcon, Layers, Tag } from 'lucide-react';
+import { Package, Check, AlertCircle, ImageIcon, Layers, Tag, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Parameter } from '@/hooks/useItems';
 import { WizardFormData } from '../ItemWizard';
@@ -35,7 +35,7 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
 
   const totalImages = formData.hasVariants
     ? formData.variants.reduce((sum, v) => sum + (v.images?.length || 0), 0)
-    : 0;
+    : formData.singleImages.length;
 
   const activeParameters = formData.parameters.filter(p => p.isActive && p.values.length > 0);
 
@@ -51,7 +51,7 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
     return parts.join(' / ');
   };
 
-  // Get primary image from first variant that has images
+  // Get primary image from first variant that has images or single images
   const getPrimaryImage = () => {
     if (formData.hasVariants) {
       for (const variant of formData.variants) {
@@ -59,6 +59,9 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
         const primary = variantImages.find(img => img.isPrimary) || variantImages[0];
         if (primary) return primary;
       }
+    } else if (formData.singleImages.length > 0) {
+      const primary = formData.singleImages.find(img => img.isPrimary) || formData.singleImages[0];
+      return primary;
     }
     return null;
   };
@@ -99,7 +102,7 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
           {totalImages > 0 && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <ImageIcon className="w-4 h-4" />
-              {totalImages} images across variants
+              {totalImages} images {formData.hasVariants ? 'across variants' : 'uploaded'}
             </div>
           )}
         </div>
@@ -148,8 +151,18 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
             <p className="text-xs text-muted-foreground">Total Stock</p>
             <p className="text-2xl font-bold text-primary">{totalQuantity} units</p>
-            <p className="text-xs text-muted-foreground">({formData.unitOfMeasure})</p>
           </div>
+
+          {/* Notes for single SKU */}
+          {!formData.hasVariants && formData.singleNotes && (
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground font-medium">Notes</p>
+              </div>
+              <p className="text-sm">{formData.singleNotes}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -169,7 +182,7 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{param.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {param.type} • {param.values.length} values
+                    {param.values.length} values
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -229,15 +242,21 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
                     <p className="font-medium text-sm truncate">
                       {display || `Variant ${idx + 1}`}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {variantImages.length} image{variantImages.length !== 1 ? 's' : ''}
-                      {variant.priceOverride && ` • ₹${variant.priceOverride}`}
-                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{variantImages.length} image{variantImages.length !== 1 ? 's' : ''}</span>
+                      {variant.priceOverride && <span>₹{variant.priceOverride}</span>}
+                      {variant.notes && (
+                        <span className="flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          Has notes
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="font-bold">{variant.quantity}</p>
                     <p className="text-xs text-muted-foreground">
-                      {variant.reservedQuantity > 0 && `${variant.reservedQuantity} reserved`}
+                      {variant.soldQuantity > 0 && `${variant.soldQuantity} sold`}
                     </p>
                   </div>
                   {!variant.isActive && (
@@ -265,10 +284,10 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
         </div>
       )}
 
-      {formData.hasVariants && totalImages === 0 && (
+      {totalImages === 0 && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/10 text-secondary-foreground">
           <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">No images uploaded for any variant. Consider adding images for better presentation.</span>
+          <span className="text-sm">No images uploaded. Consider adding images for better presentation.</span>
         </div>
       )}
     </div>

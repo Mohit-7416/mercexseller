@@ -3,16 +3,10 @@ import { Plus, X, GripVertical, List, ChevronDown, ChevronUp } from 'lucide-reac
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Parameter, ParameterValue } from '@/hooks/useItems';
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(7)}`;
-
-// Only LOV (List) type - no free text or numeric input
-const PARAM_TYPES = [
-  { value: 'list', label: 'List of Values (LOV)', icon: List },
-];
 
 interface ItemParametersProps {
   parameters: Parameter[];
@@ -21,7 +15,6 @@ interface ItemParametersProps {
 
 const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
   const [newParamName, setNewParamName] = useState('');
-  const [newParamType, setNewParamType] = useState<Parameter['type']>('list');
   const [expandedParams, setExpandedParams] = useState<Set<string>>(new Set());
   const [newValueInputs, setNewValueInputs] = useState<Record<string, string>>({});
 
@@ -46,7 +39,7 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
     const newParam: Parameter = {
       id: generateId(),
       name: newParamName.trim(),
-      type: newParamType === 'color' ? 'list' : newParamType, // Force list type if color was somehow selected
+      type: 'list',
       values: [],
       isActive: true,
       order: parameters.length
@@ -114,24 +107,18 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
     ));
   };
 
-  const getTypeIcon = (type: Parameter['type']) => {
-    const typeConfig = PARAM_TYPES.find(t => t.value === type);
-    return typeConfig?.icon || List;
-  };
-
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-2">Product Parameters</h3>
         <p className="text-sm text-muted-foreground">
-          Define custom attributes like Size, Color, Material, etc. Each parameter can have multiple values (LOV).
+          Define custom attributes like Size, Color, Material, etc. Each parameter can have multiple values.
         </p>
       </div>
 
       {/* Existing Parameters */}
       <div className="space-y-3">
         {parameters.map((param, index) => {
-          const TypeIcon = getTypeIcon(param.type);
           const isExpanded = expandedParams.has(param.id);
 
           return (
@@ -147,12 +134,12 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
                     
                     <div className="flex items-center gap-2 flex-1">
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <TypeIcon className="w-4 h-4 text-primary" />
+                        <List className="w-4 h-4 text-primary" />
                       </div>
                       <div>
                         <p className="font-medium">{param.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {param.values.length} value{param.values.length !== 1 ? 's' : ''} • {PARAM_TYPES.find(t => t.value === param.type)?.label || 'List'}
+                          {param.values.length} value{param.values.length !== 1 ? 's' : ''}
                         </p>
                       </div>
                     </div>
@@ -216,14 +203,13 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
 
                 <CollapsibleContent>
                   <div className="p-4 pt-0 border-t border-border/50 space-y-4">
-                    {/* Add Value Input - Always text-based */}
+                    {/* Add Value Input */}
                     <div className="flex gap-2">
                       <Input
                         value={newValueInputs[param.id] || ''}
                         onChange={(e) => setNewValueInputs(prev => ({ ...prev, [param.id]: e.target.value }))}
                         placeholder={`Add ${param.name.toLowerCase()} value`}
                         onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameterValue(param.id))}
-                        type={param.type === 'numeric' ? 'number' : 'text'}
                       />
                       <Button
                         type="button"
@@ -231,7 +217,7 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
                         disabled={!newValueInputs[param.id]?.trim()}
                       >
                         <Plus className="w-4 h-4 mr-1" />
-                        Add
+                        Add Value
                       </Button>
                     </div>
 
@@ -276,31 +262,13 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
             className="flex-1"
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameter())}
           />
-          <Select
-            value={newParamType}
-            onValueChange={(v: Parameter['type']) => setNewParamType(v)}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {PARAM_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  <div className="flex items-center gap-2">
-                    <type.icon className="w-4 h-4" />
-                    {type.label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Button
             type="button"
             onClick={addParameter}
             disabled={!newParamName.trim()}
           >
             <Plus className="w-4 h-4 mr-1" />
-            Add
+            Add Parameter
           </Button>
         </div>
       </div>

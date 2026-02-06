@@ -23,7 +23,6 @@ export interface VariantDetail {
   id: string;
   parameterValues: Record<string, string>; // parameterId -> valueId
   quantity: number;
-  reservedQuantity: number;
   soldQuantity: number;
   skuOverride?: string;
   priceOverride?: number;
@@ -48,6 +47,14 @@ export interface ItemDimensions {
   variants?: VariantDetail[];
   hasVariants?: boolean;
   singleQuantity?: number;
+  singleSoldQuantity?: number;
+  singleNotes?: string;
+  singleImages?: Array<{
+    id: string;
+    url: string;
+    isPrimary: boolean;
+    order: number;
+  }>;
   [key: string]: any;
 }
 
