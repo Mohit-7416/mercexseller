@@ -442,7 +442,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                                 return (
                                   <Select
                                     key={param.id}
-                                    value={variant.parameterValues[param.id] || ''}
+                                    value={variant.parameterValues[param.id] || undefined}
                                     onValueChange={(v) => {
                                       updateVariantParamValue(variant.id, param.id, v);
                                     }}
@@ -456,9 +456,6 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                                       </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="">
-                                        <span className="text-muted-foreground">-- Select --</span>
-                                      </SelectItem>
                                       {param.values.filter(v => v.isActive !== false).map(v => (
                                         <SelectItem key={v.id} value={v.id}>
                                           {v.value}
