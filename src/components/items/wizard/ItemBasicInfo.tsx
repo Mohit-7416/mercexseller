@@ -79,7 +79,7 @@ const ItemBasicInfo = ({
                   </SelectItem>
                 ))}
                 <SelectItem value={OTHERS_ID}>
-                  <span className="text-muted-foreground">Others (Custom)</span>
+                  <span className="text-muted-foreground">Other</span>
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -102,7 +102,7 @@ const ItemBasicInfo = ({
                   </SelectItem>
                 ))}
                 <SelectItem value={OTHERS_ID}>
-                  <span className="text-muted-foreground">Others (Custom)</span>
+                  <span className="text-muted-foreground">Other</span>
                 </SelectItem>
               </SelectContent>
             </Select>
