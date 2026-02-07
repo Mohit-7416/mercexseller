@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Category, Subcategory } from '@/hooks/useCategories';
 import { WizardFormData } from '../ItemWizard';
 
-const OTHERS_ID = 'others';
+
 
 interface ItemBasicInfoProps {
   formData: WizardFormData;
@@ -24,7 +24,7 @@ const ItemBasicInfo = ({
   categories,
   getSubcategoriesByCategory,
 }: ItemBasicInfoProps) => {
-  const subcategories = formData.category_id && formData.category_id !== OTHERS_ID
+  const subcategories = formData.category_id
     ? getSubcategoriesByCategory(formData.category_id)
     : [];
 
@@ -78,9 +78,6 @@ const ItemBasicInfo = ({
                     {cat.name}
                   </SelectItem>
                 ))}
-                <SelectItem value={OTHERS_ID}>
-                  <span className="text-muted-foreground">Other</span>
-                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -90,7 +87,7 @@ const ItemBasicInfo = ({
             <Select
               value={formData.subcategory_id}
               onValueChange={(value) => updateFormData({ subcategory_id: value })}
-              disabled={!formData.category_id || formData.category_id === OTHERS_ID}
+              disabled={!formData.category_id}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select subcategory" />
@@ -101,47 +98,11 @@ const ItemBasicInfo = ({
                     {sub.name}
                   </SelectItem>
                 ))}
-                <SelectItem value={OTHERS_ID}>
-                  <span className="text-muted-foreground">Other</span>
-                </SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Custom Category Input */}
-        {formData.category_id === OTHERS_ID && (
-          <div className="space-y-2">
-            <Label htmlFor="custom_category">Custom Category Name *</Label>
-            <Input
-              id="custom_category"
-              value={formData.custom_category}
-              onChange={(e) => updateFormData({ custom_category: e.target.value })}
-              placeholder="Enter custom category name"
-              className={errors.custom_category ? 'border-destructive' : ''}
-            />
-            {errors.custom_category && (
-              <p className="text-xs text-destructive">{errors.custom_category}</p>
-            )}
-          </div>
-        )}
-
-        {/* Custom Subcategory Input */}
-        {formData.subcategory_id === OTHERS_ID && (
-          <div className="space-y-2">
-            <Label htmlFor="custom_subcategory">Custom Subcategory Name *</Label>
-            <Input
-              id="custom_subcategory"
-              value={formData.custom_subcategory}
-              onChange={(e) => updateFormData({ custom_subcategory: e.target.value })}
-              placeholder="Enter custom subcategory name"
-              className={errors.custom_subcategory ? 'border-destructive' : ''}
-            />
-            {errors.custom_subcategory && (
-              <p className="text-xs text-destructive">{errors.custom_subcategory}</p>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Pricing */}
