@@ -180,16 +180,16 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
                     <span className="text-sm text-muted-foreground">{param.name}</span>
                   </div>
                   <Select
-                    value={variant.parameterValues[param.id] || ''}
+                    value={variant.parameterValues[param.id] || '__none__'}
                     onValueChange={(valueId) => {
-                      updateVariantValue(variant.id, param.id, valueId);
+                      updateVariantValue(variant.id, param.id, valueId === '__none__' ? '' : valueId);
                     }}
                   >
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder={`Select ${param.name.toLowerCase()}`} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">
+                      <SelectItem value="__none__">
                         <span className="text-muted-foreground">-- Select --</span>
                       </SelectItem>
                       {param.values.filter(v => v.isActive !== false).map((v) => (
