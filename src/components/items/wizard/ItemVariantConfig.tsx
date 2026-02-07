@@ -308,11 +308,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
           </div>
           
           {/* Stock Summary */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-              <p className="text-xs text-muted-foreground">Total Stock</p>
-              <p className="text-xl font-bold text-primary">{formData.singleQuantity}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/20">
               <p className="text-xs text-muted-foreground">Available</p>
               <p className="text-xl font-bold text-secondary">{formData.singleQuantity - formData.singleSoldQuantity}</p>
@@ -324,29 +320,18 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
           </div>
 
           {/* Quantity Input */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Available Quantity</Label>
-              <Input
-                type="number"
-                min="0"
-                value={formData.singleQuantity}
-                onChange={(e) => updateFormData({ singleQuantity: parseInt(e.target.value) || 0 })}
-                className={errors.singleQuantity ? 'border-destructive' : ''}
-              />
-              {errors.singleQuantity && (
-                <p className="text-xs text-destructive">{errors.singleQuantity}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>Sold Quantity</Label>
-              <Input
-                type="number"
-                min="0"
-                value={formData.singleSoldQuantity}
-                onChange={(e) => updateFormData({ singleSoldQuantity: parseInt(e.target.value) || 0 })}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Available Quantity</Label>
+            <Input
+              type="number"
+              min="0"
+              value={formData.singleQuantity}
+              onChange={(e) => updateFormData({ singleQuantity: parseInt(e.target.value) || 0 })}
+              className={errors.singleQuantity ? 'border-destructive' : ''}
+            />
+            {errors.singleQuantity && (
+              <p className="text-xs text-destructive">{errors.singleQuantity}</p>
+            )}
           </div>
 
           {/* Images */}
@@ -381,11 +366,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
       {formData.hasVariants && activeParameters.length > 0 && (
         <>
           {/* Inventory Summary */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-              <p className="text-xs text-muted-foreground">Total Stock</p>
-              <p className="text-xl font-bold text-primary">{totalQuantity}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
             <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/20">
               <p className="text-xs text-muted-foreground">Available</p>
               <p className="text-xl font-bold text-secondary">{totalAvailable}</p>
@@ -475,6 +456,9 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                                       </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
+                                      <SelectItem value="">
+                                        <span className="text-muted-foreground">-- Select --</span>
+                                      </SelectItem>
                                       {param.values.filter(v => v.isActive !== false).map(v => (
                                         <SelectItem key={v.id} value={v.id}>
                                           {v.value}

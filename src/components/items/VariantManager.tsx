@@ -189,6 +189,9 @@ const VariantManager = ({ parameters, variants, onChange, baseSku }: VariantMana
                       <SelectValue placeholder={`Select ${param.name.toLowerCase()}`} />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="">
+                        <span className="text-muted-foreground">-- Select --</span>
+                      </SelectItem>
                       {param.values.filter(v => v.isActive !== false).map((v) => (
                         <SelectItem key={v.id} value={v.id}>
                           <div className="flex items-center gap-2">
