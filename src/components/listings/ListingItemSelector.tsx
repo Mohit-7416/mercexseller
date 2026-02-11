@@ -172,7 +172,32 @@ const ListingItemSelector = ({
           </Select>
         </div>
 
-        {/* Available Items List */}
+        {/* Add All & Available Items List */}
+        {filteredItems.length > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {filteredItems.length} item(s) available
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => {
+                filteredItems.forEach((item) =>
+                  onAddItem({
+                    item_id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: 1,
+                  })
+                );
+              }}
+            >
+              Add All ({filteredItems.length})
+            </Button>
+          </div>
+        )}
+
         <div className="max-h-48 overflow-y-auto space-y-1">
           {filteredItems.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
