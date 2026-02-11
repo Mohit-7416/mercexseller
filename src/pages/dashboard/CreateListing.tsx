@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Gavel, ShoppingBag, Upload, Calendar, Clock, Sparkles, Loader2, ArrowLeft } from "lucide-react";
+import { Gavel, ShoppingBag, Upload, Calendar, Clock, Sparkles, Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,16 +9,21 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
 import { useListings, ListingType } from "@/hooks/useListings";
+import { useItems } from "@/hooks/useItems";
+import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ListingItemSelector, { SelectedListingItem } from "@/components/listings/ListingItemSelector";
 
 const CreateListing = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { categories, getSubcategoriesByCategory, loading: categoriesLoading } = useCategories();
-  const { createListing } = useListings();
-  
+  const { categories, subcategories, getSubcategoriesByCategory, loading: categoriesLoading } = useCategories();
+  const { createListing, liveListings } = useListings();
+  const { items, loading: itemsLoading } = useItems();
+
   const [listingType, setListingType] = useState<ListingType | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<SelectedListingItem[]>([]);
   const [formData, setFormData] = useState({
     category_id: '',
     subcategory_id: '',
@@ -30,12 +35,26 @@ const CreateListing = () => {
     starting_price: ''
   });
 
-  const subcategories = formData.category_id ? getSubcategoriesByCategory(formData.category_id) : [];
+  const hasActiveLive = liveListings.length > 0;
+  const subcategoriesList = formData.category_id ? getSubcategoriesByCategory(formData.category_id) : [];
+
+  const handleAddItem = (item: SelectedListingItem) => {
+    setSelectedItems(prev => [...prev, item]);
+  };
+
+  const handleRemoveItem = (itemId: string) => {
+    setSelectedItems(prev => prev.filter(i => i.item_id !== itemId));
+  };
+
+  const handleUpdateQuantity = (itemId: string, quantity: number) => {
+    setSelectedItems(prev =>
+      prev.map(i => (i.item_id === itemId ? { ...i, quantity } : i))
+    );
+  };
 
   const handleSubmit = async (asDraft: boolean) => {
     if (!listingType) return;
 
-    // Validation
     if (!formData.title.trim()) {
       toast({
         title: "Title required",
@@ -45,9 +64,17 @@ const CreateListing = () => {
       return;
     }
 
+    if (!asDraft && hasActiveLive) {
+      toast({
+        title: "Active listing exists",
+        description: "You already have a live listing running. Complete or cancel it before scheduling a new one.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSaving(true);
     try {
-      // Combine date and time for scheduled_start
       let scheduled_start = null;
       if (formData.date && formData.time) {
         scheduled_start = new Date(`${formData.date}T${formData.time}`).toISOString();
@@ -61,14 +88,34 @@ const CreateListing = () => {
         category_id: formData.category_id || null,
         subcategory_id: formData.subcategory_id || null,
         scheduled_start,
-        starting_price: formData.starting_price ? parseFloat(formData.starting_price) : null
+        starting_price: listingType === 'auction' && formData.starting_price
+          ? parseFloat(formData.starting_price)
+          : null
       });
 
       if (error) throw error;
 
+      // Save listing items
+      if (data && selectedItems.length > 0) {
+        const listingItemsData = selectedItems.map(si => ({
+          listing_id: data.id,
+          item_id: si.item_id,
+          price: si.price,
+          quantity: si.quantity,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('listing_items')
+          .insert(listingItemsData);
+
+        if (itemsError) {
+          console.error('Error saving listing items:', itemsError);
+        }
+      }
+
       toast({
         title: asDraft ? "Draft saved!" : "Listing scheduled!",
-        description: `Your ${listingType} ${data?.listing_code} has been ${asDraft ? 'saved as draft' : 'scheduled'}.`,
+        description: `Your ${listingType === 'live_sale' ? 'live sale' : 'auction'} ${data?.listing_code} has been ${asDraft ? 'saved as draft' : 'scheduled'}.`,
       });
 
       navigate('/dashboard');
@@ -85,11 +132,23 @@ const CreateListing = () => {
 
   return (
     <div className="max-w-3xl">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Create Listing</h1>
         <p className="text-muted-foreground">Set up a new auction or sale for your products</p>
       </div>
+
+      {/* Active live warning */}
+      {hasActiveLive && (
+        <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-destructive mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium text-sm">A live listing is already running</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              You can only run one live auction or live sale at a time. Complete or cancel the current one before scheduling a new listing.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Listing Type Selection */}
       {!listingType ? (
@@ -161,10 +220,10 @@ const CreateListing = () => {
               ) : (
                 <Select
                   value={formData.category_id}
-                  onValueChange={(value) => setFormData(prev => ({ 
-                    ...prev, 
+                  onValueChange={(value) => setFormData(prev => ({
+                    ...prev,
                     category_id: value,
-                    subcategory_id: '' // Reset subcategory when category changes
+                    subcategory_id: ''
                   }))}
                 >
                   <SelectTrigger className="bg-card/50 border-border/50">
@@ -186,19 +245,19 @@ const CreateListing = () => {
               <Select
                 value={formData.subcategory_id}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory_id: value }))}
-                disabled={!formData.category_id || subcategories.length === 0}
+                disabled={!formData.category_id || subcategoriesList.length === 0}
               >
                 <SelectTrigger className="bg-card/50 border-border/50">
                   <SelectValue placeholder={
-                    !formData.category_id 
-                      ? "Select a category first" 
-                      : subcategories.length === 0 
-                        ? "No subcategories" 
+                    !formData.category_id
+                      ? "Select a category first"
+                      : subcategoriesList.length === 0
+                        ? "No subcategories"
                         : "Select a subcategory"
                   } />
                 </SelectTrigger>
                 <SelectContent>
-                  {subcategories.map((sub) => (
+                  {subcategoriesList.map((sub) => (
                     <SelectItem key={sub.id} value={sub.id}>
                       {sub.name}
                     </SelectItem>
@@ -232,7 +291,7 @@ const CreateListing = () => {
             />
           </div>
 
-          {/* Starting Price (for auctions) */}
+          {/* Starting Price (auction only) */}
           {listingType === 'auction' && (
             <div className="space-y-2">
               <Label htmlFor="starting_price">Starting Price (₹)</Label>
@@ -246,6 +305,17 @@ const CreateListing = () => {
               />
             </div>
           )}
+
+          {/* Item Selector */}
+          <ListingItemSelector
+            items={items}
+            categories={categories}
+            subcategories={subcategories}
+            selectedItems={selectedItems}
+            onAddItem={handleAddItem}
+            onRemoveItem={handleRemoveItem}
+            onUpdateQuantity={handleUpdateQuantity}
+          />
 
           {/* Thumbnail Upload */}
           <div className="space-y-2">
@@ -299,20 +369,20 @@ const CreateListing = () => {
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
-            <Button 
-              variant="outline" 
-              onClick={() => handleSubmit(true)} 
+            <Button
+              variant="outline"
+              onClick={() => handleSubmit(true)}
               className="flex-1"
               disabled={saving}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Save as Draft
             </Button>
-            <Button 
-              variant="hero" 
-              onClick={() => handleSubmit(false)} 
+            <Button
+              variant="hero"
+              onClick={() => handleSubmit(false)}
               className="flex-1"
-              disabled={saving}
+              disabled={saving || hasActiveLive}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Schedule Listing
