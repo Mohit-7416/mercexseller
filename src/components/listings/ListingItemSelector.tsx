@@ -62,6 +62,8 @@ const ListingItemSelector = ({
     });
   }, [items, selectedItems, searchQuery, filterCategory, filterSubcategory]);
 
+  const hasActiveFilter = searchQuery.trim() !== "" || filterCategory !== "" || filterSubcategory !== "";
+
   const getCategoryName = (catId: string | null) =>
     categories.find((c) => c.id === catId)?.name || "";
 
@@ -172,69 +174,73 @@ const ListingItemSelector = ({
           </Select>
         </div>
 
-        {/* Add All & Available Items List */}
-        {filteredItems.length > 0 && (
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {filteredItems.length} item(s) available
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs h-7"
-              onClick={() => {
-                filteredItems.forEach((item) =>
-                  onAddItem({
-                    item_id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: 1,
-                  })
-                );
-              }}
-            >
-              Add All ({filteredItems.length})
-            </Button>
-          </div>
-        )}
+        {/* Add All & Available Items List — only show after search/filter */}
+        {hasActiveFilter && (
+          <>
+            {filteredItems.length > 0 && (
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  {filteredItems.length} item(s) available
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => {
+                    filteredItems.forEach((item) =>
+                      onAddItem({
+                        item_id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: 1,
+                      })
+                    );
+                  }}
+                >
+                  Add All ({filteredItems.length})
+                </Button>
+              </div>
+            )}
 
-        <div className="max-h-48 overflow-y-auto space-y-1">
-          {filteredItems.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No items found
-            </p>
-          ) : (
-            filteredItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() =>
-                  onAddItem({
-                    item_id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    quantity: 1,
-                  })
-                }
-                className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-accent/50 transition-colors text-left"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{item.name}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      ₹{item.price}
-                    </span>
-                    {item.category_id && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        {getCategoryName(item.category_id)}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <span className="text-xs text-primary ml-2">+ Add</span>
-              </button>
-            ))
-          )}
-        </div>
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {filteredItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No items found
+                </p>
+              ) : (
+                filteredItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() =>
+                      onAddItem({
+                        item_id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: 1,
+                      })
+                    }
+                    className="w-full flex items-center justify-between p-2.5 rounded-lg hover:bg-accent/50 transition-colors text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{item.name}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          ₹{item.price}
+                        </span>
+                        {item.category_id && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {getCategoryName(item.category_id)}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-primary ml-2">+ Add</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
