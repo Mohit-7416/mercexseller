@@ -27,47 +27,10 @@ const Analysis = () => {
     return { start, end, days };
   };
 
-  // Generate mock data when no real orders exist
+  // Process order data for charts
   const { revenueData, itemsSoldData, stats } = useMemo(() => {
     const { end, days } = getDateRange();
-    const hasRealData = orders.length > 0;
 
-    if (!hasRealData) {
-      // Generate random mock data
-      const mockRevenue: { name: string; auctions: number; sales: number }[] = [];
-      const mockItems: { name: string; count: number }[] = [];
-      const dayCount = Math.min(days, 7);
-
-      let totalAuctions = 0;
-      let totalSales = 0;
-      let totalOrders = 0;
-
-      for (let i = dayCount - 1; i >= 0; i--) {
-        const date = subDays(end, i);
-        const name = format(date, "EEE");
-        const auctions = Math.floor(Math.random() * 8000) + 1000;
-        const sales = Math.floor(Math.random() * 6000) + 500;
-        const count = Math.floor(Math.random() * 12) + 1;
-        totalAuctions += auctions;
-        totalSales += sales;
-        totalOrders += count;
-        mockRevenue.push({ name, auctions, sales });
-        mockItems.push({ name, count });
-      }
-
-      return {
-        revenueData: mockRevenue,
-        itemsSoldData: mockItems,
-        stats: {
-          totalRevenue: totalAuctions + totalSales,
-          auctionRevenue: totalAuctions,
-          salesRevenue: totalSales,
-          totalItems: totalOrders,
-        },
-      };
-    }
-
-    // Real data processing
     const start = subDays(end, days);
     const filteredOrders = orders.filter(order => {
       const orderDate = parseISO(order.created_at);
@@ -123,7 +86,7 @@ const Analysis = () => {
     );
   }
 
-  const hasData = true; // Always show data (mock or real)
+  const hasData = orders.length > 0;
 
   return (
     <div className="space-y-8">
