@@ -27,69 +27,93 @@ const Analysis = () => {
     return { start, end, days };
   };
 
-  // Process real order data for charts
+  // Generate mock data when no real orders exist
   const { revenueData, itemsSoldData, stats } = useMemo(() => {
-    const { start, end, days } = getDateRange();
-    
-    // Filter orders within date range
+    const { end, days } = getDateRange();
+    const hasRealData = orders.length > 0;
+
+    if (!hasRealData) {
+      // Generate random mock data
+      const mockRevenue: { name: string; auctions: number; sales: number }[] = [];
+      const mockItems: { name: string; count: number }[] = [];
+      const dayCount = Math.min(days, 7);
+
+      let totalAuctions = 0;
+      let totalSales = 0;
+      let totalOrders = 0;
+
+      for (let i = dayCount - 1; i >= 0; i--) {
+        const date = subDays(end, i);
+        const name = format(date, "EEE");
+        const auctions = Math.floor(Math.random() * 8000) + 1000;
+        const sales = Math.floor(Math.random() * 6000) + 500;
+        const count = Math.floor(Math.random() * 12) + 1;
+        totalAuctions += auctions;
+        totalSales += sales;
+        totalOrders += count;
+        mockRevenue.push({ name, auctions, sales });
+        mockItems.push({ name, count });
+      }
+
+      return {
+        revenueData: mockRevenue,
+        itemsSoldData: mockItems,
+        stats: {
+          totalRevenue: totalAuctions + totalSales,
+          auctionRevenue: totalAuctions,
+          salesRevenue: totalSales,
+          totalItems: totalOrders,
+        },
+      };
+    }
+
+    // Real data processing
+    const start = subDays(end, days);
     const filteredOrders = orders.filter(order => {
       const orderDate = parseISO(order.created_at);
       return isWithinInterval(orderDate, { start, end });
     });
 
-    // Group orders by date
     const dateMap = new Map<string, { auctions: number; sales: number; count: number }>();
-    
-    // Initialize all dates in range
     for (let i = 0; i < Math.min(days, 7); i++) {
       const date = subDays(end, i);
       const dateKey = format(date, "EEE");
       dateMap.set(dateKey, { auctions: 0, sales: 0, count: 0 });
     }
 
-    // Aggregate order data
     filteredOrders.forEach(order => {
       const dateKey = format(parseISO(order.created_at), "EEE");
       const current = dateMap.get(dateKey) || { auctions: 0, sales: 0, count: 0 };
-      
-      // Determine if order is from auction or sale based on listing
       const listing = listings.find(l => l.id === order.listing_id);
       const isAuction = listing?.type === "auction";
-      
       dateMap.set(dateKey, {
         auctions: current.auctions + (isAuction ? order.total : 0),
         sales: current.sales + (!isAuction ? order.total : 0),
-        count: current.count + 1
+        count: current.count + 1,
       });
     });
 
-    // Convert to array for charts
-    const revenueData = Array.from(dateMap.entries())
-      .map(([name, data]) => ({ name, ...data }))
-      .reverse();
+    const revenueData = Array.from(dateMap.entries()).map(([name, data]) => ({ name, ...data })).reverse();
+    const itemsSoldData = Array.from(dateMap.entries()).map(([name, data]) => ({ name, count: data.count })).reverse();
 
-    const itemsSoldData = Array.from(dateMap.entries())
-      .map(([name, data]) => ({ name, count: data.count }))
-      .reverse();
-
-    // Calculate totals
     const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
     const auctionRevenue = filteredOrders.reduce((sum, o) => {
       const listing = listings.find(l => l.id === o.listing_id);
       return sum + (listing?.type === "auction" ? o.total : 0);
     }, 0);
-    const salesRevenue = totalRevenue - auctionRevenue;
-    const totalItems = filteredOrders.length;
 
-    const stats = {
-      totalRevenue,
-      auctionRevenue,
-      salesRevenue,
-      totalItems
+    return {
+      revenueData,
+      itemsSoldData,
+      stats: {
+        totalRevenue,
+        auctionRevenue,
+        salesRevenue: totalRevenue - auctionRevenue,
+        totalItems: filteredOrders.length,
+      },
     };
-
-    return { revenueData, itemsSoldData, stats };
   }, [orders, listings, timeRange]);
+
 
   if (loading) {
     return (
@@ -99,7 +123,7 @@ const Analysis = () => {
     );
   }
 
-  const hasData = orders.length > 0;
+  const hasData = true; // Always show data (mock or real)
 
   return (
     <div className="space-y-8">
