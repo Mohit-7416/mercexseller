@@ -243,6 +243,7 @@ const Orders = () => {
         onOpenChange={(open) => !open && setDetailsOrder(null)}
       />
     </div>
+  );
 };
 
 export default Orders;
