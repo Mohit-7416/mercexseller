@@ -28,6 +28,7 @@ const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
   const filteredOrders = orders.filter(order => 
     order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
