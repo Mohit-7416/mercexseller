@@ -236,8 +236,13 @@ const Orders = () => {
           </div>
         </motion.div>
       )}
+
+      <OrderDetailsDialog
+        order={detailsOrder}
+        open={!!detailsOrder}
+        onOpenChange={(open) => !open && setDetailsOrder(null)}
+      />
     </div>
-  );
 };
 
 export default Orders;
