@@ -52,6 +52,7 @@ function App() {
                   <Route index element={<Overview />} />
                   <Route path="create" element={<CreateListing />} />
                   <Route path="orders" element={<Orders />} />
+                  <Route path="orders/chat" element={<OrderChat />} />
                   <Route path="items" element={<Items />} />
                   <Route path="analysis" element={<Analysis />} />
                   <Route path="settings" element={<Settings />} />
