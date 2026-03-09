@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { useOrders, OrderStatus } from "@/hooks/useOrders";
+import { useOrders, Order, OrderStatus } from "@/hooks/useOrders";
 import { useListings } from "@/hooks/useListings";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
+import OrderDetailsDialog from "@/components/orders/OrderDetailsDialog";
 
 const statusColors: Record<OrderStatus, string> = {
   pending: "bg-secondary/10 text-secondary",
