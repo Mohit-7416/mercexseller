@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Search, Filter, MessageCircle, Calendar, ChevronDown, Package, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useOrders, OrderStatus } from "@/hooks/useOrders";
@@ -21,6 +22,7 @@ const Orders = () => {
   const { orders, loading, updateOrderStatus } = useOrders();
   const { listings } = useListings();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
@@ -216,7 +218,7 @@ const Orders = () => {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/orders/chat?orderId=${order.id}`)}>
                             <MessageCircle className="w-4 h-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8">

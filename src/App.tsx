@@ -16,6 +16,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import Overview from "./pages/dashboard/Overview";
 import CreateListing from "./pages/dashboard/CreateListing";
 import Orders from "./pages/dashboard/Orders";
+import OrderChat from "./pages/dashboard/OrderChat";
 import Items from "./pages/dashboard/Items";
 import Analysis from "./pages/dashboard/Analysis";
 import Settings from "./pages/dashboard/Settings";
@@ -51,6 +52,7 @@ function App() {
                   <Route index element={<Overview />} />
                   <Route path="create" element={<CreateListing />} />
                   <Route path="orders" element={<Orders />} />
+                  <Route path="orders/chat" element={<OrderChat />} />
                   <Route path="items" element={<Items />} />
                   <Route path="analysis" element={<Analysis />} />
                   <Route path="settings" element={<Settings />} />
