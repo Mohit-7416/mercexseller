@@ -327,6 +327,41 @@ export type Database = {
           },
         ]
       }
+      order_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          order_id: string
+          sender_id: string | null
+          sender_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          order_id: string
+          sender_id?: string | null
+          sender_type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          order_id?: string
+          sender_id?: string | null
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           buyer_email: string | null
