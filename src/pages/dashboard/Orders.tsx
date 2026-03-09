@@ -223,7 +223,7 @@ const Orders = () => {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/orders/chat?orderId=${order.id}`)}>
                             <MessageCircle className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailsOrder(order)}>
                             <Package className="w-4 h-4" />
                           </Button>
                         </div>
