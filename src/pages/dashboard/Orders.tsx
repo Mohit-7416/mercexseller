@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { useOrders, OrderStatus } from "@/hooks/useOrders";
+import { useOrders, Order, OrderStatus } from "@/hooks/useOrders";
 import { useListings } from "@/hooks/useListings";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
+import OrderDetailsDialog from "@/components/orders/OrderDetailsDialog";
 
 const statusColors: Record<OrderStatus, string> = {
   pending: "bg-secondary/10 text-secondary",
@@ -27,6 +28,7 @@ const Orders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
   const filteredOrders = orders.filter(order => 
     order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -221,7 +223,7 @@ const Orders = () => {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/orders/chat?orderId=${order.id}`)}>
                             <MessageCircle className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailsOrder(order)}>
                             <Package className="w-4 h-4" />
                           </Button>
                         </div>
@@ -234,6 +236,12 @@ const Orders = () => {
           </div>
         </motion.div>
       )}
+
+      <OrderDetailsDialog
+        order={detailsOrder}
+        open={!!detailsOrder}
+        onOpenChange={(open) => !open && setDetailsOrder(null)}
+      />
     </div>
   );
 };
