@@ -22,6 +22,7 @@ const Orders = () => {
   const { orders, loading, updateOrderStatus } = useOrders();
   const { listings } = useListings();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
