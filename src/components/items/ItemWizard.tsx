@@ -405,10 +405,11 @@ const ItemWizard = ({
         </div>
 
         {/* Navigation */}
-        <div className="shrink-0 flex gap-3 pt-4 border-t">
+        <div className="shrink-0 flex flex-wrap items-center gap-2 sm:gap-3 pt-4 border-t">
           {currentStep > 0 && (
             <Button
               variant="outline"
+              size="sm"
               onClick={handleBack}
               disabled={saving}
               className="gap-2"
@@ -420,17 +421,17 @@ const ItemWizard = ({
           
           <div className="flex-1" />
           
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
           
           {currentStep < STEPS.length - 1 ? (
-            <Button variant="hero" onClick={handleNext} className="gap-2">
+            <Button variant="hero" size="sm" onClick={handleNext} className="gap-2">
               Next
               <ChevronRight className="w-4 h-4" />
             </Button>
           ) : (
-            <Button variant="hero" onClick={handleSave} disabled={saving}>
+            <Button variant="hero" size="sm" onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {item ? 'Update Item' : 'Create Item'}
             </Button>
