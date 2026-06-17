@@ -166,16 +166,14 @@ const DashboardLayout = () => {
       <main className="flex-1 md:ml-64 min-w-0">
         {/* Mobile Top Bar */}
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-3 px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-          </SheetTrigger>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-sea-green-dark flex items-center justify-center shrink-0">
               <Store className="w-4 h-4 text-primary-foreground" />
