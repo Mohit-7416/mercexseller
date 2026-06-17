@@ -94,7 +94,7 @@ const Orders = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-wrap gap-4"
       >
-        <div className="relative flex-1 min-w-[300px]">
+        <div className="relative flex-1 min-w-[200px] w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search by Order ID or Buyer..."
