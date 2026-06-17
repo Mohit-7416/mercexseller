@@ -93,18 +93,18 @@ const Analysis = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Analysis</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Analysis</h1>
           <p className="text-muted-foreground">Track your business performance</p>
         </div>
 
         {/* View Type Selector */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 p-1 rounded-lg bg-card/50 border border-border/50">
+          <div className="flex items-center gap-1 sm:gap-2 p-1 rounded-lg bg-card/50 border border-border/50 w-full sm:w-auto">
             {(["7days", "30days", "90days"] as TimeRange[]).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   timeRange === range
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -156,25 +156,25 @@ const Analysis = () => {
           </div>
 
           {/* Analysis Type Buttons */}
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
             <Button
               variant={viewType === "auctions" ? "default" : "outline"}
               onClick={() => setViewType("auctions")}
-              className="flex-1"
+              className="flex-1 min-w-[120px]"
             >
               Bid Analysis
             </Button>
             <Button
               variant={viewType === "sales" ? "default" : "outline"}
               onClick={() => setViewType("sales")}
-              className="flex-1"
+              className="flex-1 min-w-[120px]"
             >
               Live Sales Analysis
             </Button>
             <Button
               variant={viewType === "all" ? "default" : "outline"}
               onClick={() => setViewType("all")}
-              className="flex-1"
+              className="flex-1 min-w-[120px]"
             >
               Combined View
             </Button>
