@@ -313,7 +313,7 @@ const ItemViewModal = ({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 sticky bottom-0 bg-background">
             <Button variant="outline" className="flex-1" onClick={onClose}>
               Close
             </Button>
