@@ -75,13 +75,13 @@ const Orders = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Orders</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Orders</h1>
           <p className="text-muted-foreground">Manage and track your customer orders</p>
         </div>
         {selectedOrders.length > 0 && (
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2 w-full sm:w-auto">
             Bulk Update ({selectedOrders.length})
             <ChevronDown className="w-4 h-4" />
           </Button>
