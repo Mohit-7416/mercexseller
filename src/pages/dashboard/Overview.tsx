@@ -99,12 +99,12 @@ const Overview = () => {
 
           {/* All Listings Section */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold">Your Listings</h2>
                 <p className="text-sm text-muted-foreground">All your drafts, scheduled, and live listings</p>
               </div>
-              <Button variant="hero" size="sm" onClick={() => navigate('/dashboard/create')}>Create New</Button>
+              <Button variant="hero" size="sm" onClick={() => navigate('/dashboard/create')} className="w-full sm:w-auto">Create New</Button>
             </div>
 
             {listings.length === 0 ? (
