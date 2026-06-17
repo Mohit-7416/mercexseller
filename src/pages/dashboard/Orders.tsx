@@ -129,7 +129,8 @@ const Orders = () => {
           transition={{ delay: 0.2 }}
           className="rounded-xl border border-border/50 overflow-hidden"
         >
-          <div className="overflow-x-auto">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-card/50">
                 <tr>
@@ -233,6 +234,82 @@ const Orders = () => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-border/30">
+            {filteredOrders.map((order, index) => {
+              const listing = getListingInfo(order.listing_id);
+              const isAuction = listing?.type === 'auction';
+              return (
+                <motion.div
+                  key={order.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.04 * index }}
+                  className="p-4 space-y-3 bg-card/20"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrders.includes(order.id)}
+                        onChange={() => toggleSelect(order.id)}
+                        className="mt-1 rounded border-border"
+                      />
+                      <div className="min-w-0">
+                        <div className="font-mono text-sm truncate">{order.order_number}</div>
+                        {listing && (
+                          <div className="text-xs text-muted-foreground truncate">{listing.listing_code}</div>
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-semibold whitespace-nowrap">₹{order.total.toLocaleString()}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 text-sm">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{order.buyer_name || 'Unknown'}</div>
+                      {order.buyer_email && (
+                        <div className="text-xs text-muted-foreground truncate">{order.buyer_email}</div>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {format(parseISO(order.created_at), 'MMM dd')}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
+                      isAuction ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
+                    }`}>
+                      {isAuction ? '🔨 Auction' : '🛒 Sale'}
+                    </span>
+                    <select
+                      value={order.status}
+                      onChange={(e) => handleStatusUpdate(order.id, e.target.value as OrderStatus)}
+                      disabled={updatingStatus === order.id}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${statusColors[order.status]}`}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="refunded">Refunded</option>
+                    </select>
+                    <div className="ml-auto flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/orders/chat?orderId=${order.id}`)}>
+                        <MessageCircle className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailsOrder(order)}>
+                        <Package className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
       )}
