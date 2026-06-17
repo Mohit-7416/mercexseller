@@ -156,25 +156,25 @@ const Analysis = () => {
           </div>
 
           {/* Analysis Type Buttons */}
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-4">
             <Button
               variant={viewType === "auctions" ? "default" : "outline"}
               onClick={() => setViewType("auctions")}
-              className="flex-1"
+              className="flex-1 min-w-[120px]"
             >
               Bid Analysis
             </Button>
             <Button
               variant={viewType === "sales" ? "default" : "outline"}
               onClick={() => setViewType("sales")}
-              className="flex-1"
+              className="flex-1 min-w-[120px]"
             >
               Live Sales Analysis
             </Button>
             <Button
               variant={viewType === "all" ? "default" : "outline"}
               onClick={() => setViewType("all")}
-              className="flex-1"
+              className="flex-1 min-w-[120px]"
             >
               Combined View
             </Button>
