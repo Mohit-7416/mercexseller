@@ -99,12 +99,12 @@ const Analysis = () => {
 
         {/* View Type Selector */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 p-1 rounded-lg bg-card/50 border border-border/50">
+          <div className="flex items-center gap-1 sm:gap-2 p-1 rounded-lg bg-card/50 border border-border/50 w-full sm:w-auto">
             {(["7days", "30days", "90days"] as TimeRange[]).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                   timeRange === range
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
