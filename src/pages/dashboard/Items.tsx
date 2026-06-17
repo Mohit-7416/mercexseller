@@ -276,12 +276,12 @@ const Items = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Items</h1>
-          <p className="text-muted-foreground">Manage your inventory with variants and images</p>
+          <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Items</h1>
+          <p className="text-sm md:text-base text-muted-foreground">Manage your inventory with variants and images</p>
         </div>
-        <Button variant="hero" className="gap-2" onClick={openAddWizard}>
+        <Button variant="hero" className="gap-2 w-full sm:w-auto" onClick={openAddWizard}>
           <Plus className="w-4 h-4" />
           Add Item
         </Button>
@@ -320,7 +320,7 @@ const Items = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {filteredItems.map((item, index) => (
             <motion.div
