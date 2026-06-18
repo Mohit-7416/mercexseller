@@ -70,7 +70,8 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     fetchShops();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   useEffect(() => {
     if (currentShop) {
