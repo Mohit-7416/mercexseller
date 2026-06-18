@@ -31,20 +31,35 @@ interface ShopContextType {
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [shops, setShops] = useState<Shop[]>([]);
-  const [currentShop, setCurrentShop] = useState<Shop | null>(null);
+  const [currentShop, setCurrentShopState] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const setCurrentShop = (shop: Shop | null) => {
+    if (shop) {
+      localStorage.setItem('currentShopId', shop.id);
+    } else {
+      localStorage.removeItem('currentShopId');
+    }
+    setCurrentShopState(shop);
+  };
+
   const fetchShops = async () => {
-    if (!user) {
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+
+    if (!user?.id) {
       setShops([]);
-      setCurrentShop(null);
+      setCurrentShopState(null);
       setLoading(false);
       return;
     }
 
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('shops')
         .select('*')
@@ -55,11 +70,19 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
 
       setShops(data || []);
       
-      // Set first shop as current if no current shop selected
-      if (data && data.length > 0 && !currentShop) {
+      if (data && data.length > 0) {
         const savedShopId = localStorage.getItem('currentShopId');
-        const savedShop = data.find(s => s.id === savedShopId);
-        setCurrentShop(savedShop || data[0]);
+        setCurrentShopState((previousShop) => {
+          const previousStillExists = previousShop
+            ? data.find((shop) => shop.id === previousShop.id)
+            : null;
+          const savedShop = savedShopId ? data.find((shop) => shop.id === savedShopId) : null;
+          const nextShop = previousStillExists || savedShop || data[0];
+          localStorage.setItem('currentShopId', nextShop.id);
+          return nextShop;
+        });
+      } else {
+        setCurrentShop(null);
       }
     } catch (error) {
       console.error('Error fetching shops:', error);
@@ -71,13 +94,7 @@ export const ShopProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     fetchShops();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (currentShop) {
-      localStorage.setItem('currentShopId', currentShop.id);
-    }
-  }, [currentShop]);
+  }, [user?.id, authLoading]);
 
   const createShop = async (shopData: Partial<Shop>) => {
     if (!user) return { data: null, error: new Error('Not authenticated') };
