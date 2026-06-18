@@ -434,8 +434,8 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                   >
                     <div className={`border rounded-lg overflow-hidden ${isDuplicate ? 'border-destructive bg-destructive/5' : 'border-border/50'}`}>
                       <CollapsibleTrigger asChild>
-                        <div className="flex items-center gap-3 p-4 cursor-pointer hover:bg-muted/50 transition-colors">
-                          <div className="flex-1 min-w-0">
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-3 p-3 sm:p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                          <div className="flex-1 min-w-0 w-full">
                             <div className="flex items-center gap-2 flex-wrap">
                               {activeParameters.map(param => {
                                 const selectedValue = getValueById(param, variant.parameterValues[param.id]);
@@ -468,8 +468,8 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                          <div className="grid grid-cols-3 gap-2 lg:flex lg:items-center lg:gap-3 w-full lg:w-auto">
+                            <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-2" onClick={(e) => e.stopPropagation()}>
                               <Label className="text-xs text-muted-foreground">Price</Label>
                               <Input
                                 type="number"
@@ -477,12 +477,12 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                                 step="0.01"
                                 value={variant.priceOverride ?? formData.price}
                                 onChange={(e) => updateVariant(variant.id, { priceOverride: parseFloat(e.target.value) || 0 })}
-                                className="h-8 w-24 text-sm"
+                                className="h-8 w-full lg:w-24 text-sm"
                                 placeholder={`₹${formData.price}`}
                               />
                             </div>
                             
-                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-2" onClick={(e) => e.stopPropagation()}>
                               <Label className="text-xs text-muted-foreground">Cost</Label>
                               <Input
                                 type="number"
@@ -490,22 +490,24 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                                 step="0.01"
                                 value={variant.costPriceOverride ?? formData.cost_price ?? ''}
                                 onChange={(e) => updateVariant(variant.id, { costPriceOverride: parseFloat(e.target.value) || undefined })}
-                                className="h-8 w-24 text-sm"
+                                className="h-8 w-full lg:w-24 text-sm"
                                 placeholder={formData.cost_price ? `₹${formData.cost_price}` : 'Cost'}
                               />
                             </div>
                             
-                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-2" onClick={(e) => e.stopPropagation()}>
                               <Label className="text-xs text-muted-foreground">Qty</Label>
                               <Input
                                 type="number"
                                 min="0"
                                 value={variant.quantity}
                                 onChange={(e) => updateVariant(variant.id, { quantity: parseInt(e.target.value) || 0 })}
-                                className="h-8 w-20 text-sm"
+                                className="h-8 w-full lg:w-20 text-sm"
                               />
                             </div>
-                            
+                          </div>
+
+                          <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-auto pt-2 lg:pt-0 border-t lg:border-t-0 border-border/30">
                             <Button
                               type="button"
                               variant="outline"
@@ -525,27 +527,30 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                               )}
                             </Button>
 
-                            <Switch
-                              checked={variant.isActive}
-                              onCheckedChange={(checked) => updateVariant(variant.id, { isActive: checked })}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeVariant(variant.id);
-                              }}
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                checked={variant.isActive}
+                                onCheckedChange={(checked) => updateVariant(variant.id, { isActive: checked })}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeVariant(variant.id);
+                                }}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       </CollapsibleTrigger>
+
 
                       <CollapsibleContent>
                         <div className="p-4 pt-0 border-t border-border/50 space-y-4">
