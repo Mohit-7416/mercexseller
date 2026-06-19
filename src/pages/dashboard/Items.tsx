@@ -30,6 +30,16 @@ const Items = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  // Filter state
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterSubcategory, setFilterSubcategory] = useState<string>("all");
+  const [filterMinPrice, setFilterMinPrice] = useState<string>("");
+  const [filterMaxPrice, setFilterMaxPrice] = useState<string>("");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+
+
   // Duplicate detection state
   const [duplicateDialog, setDuplicateDialog] = useState<{
     open: boolean;
