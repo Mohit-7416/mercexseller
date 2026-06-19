@@ -470,10 +470,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                             </div>
                           </div>
 
-                                );
-                              })}
-                            </div>
-                          </div>
+
 
                           <div className="grid grid-cols-3 gap-2 lg:flex lg:items-center lg:gap-3 w-full lg:w-auto">
                             <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-2" onClick={(e) => e.stopPropagation()}>
