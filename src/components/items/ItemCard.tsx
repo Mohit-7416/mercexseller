@@ -81,9 +81,9 @@ const ItemCard = ({
   const variantSummary = getVariantSummary();
 
   return (
-    <div className="group p-5 rounded-xl bg-card/50 border border-border/50 hover:border-border hover:bg-card/80 transition-all duration-300">
+    <div className="group p-3 sm:p-5 rounded-xl bg-card/50 border border-border/50 hover:border-border hover:bg-card/80 transition-all duration-300">
       {/* Image */}
-      <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center mb-4 relative overflow-hidden">
+      <div className="w-full aspect-square rounded-lg bg-muted flex items-center justify-center mb-2 sm:mb-4 relative overflow-hidden">
         {primaryImage ? (
           <>
             <img 
@@ -92,26 +92,27 @@ const ItemCard = ({
               className="w-full h-full object-cover" 
             />
             {images.length > 1 && (
-              <div className="absolute bottom-2 right-2 px-2 py-1 bg-background/90 rounded text-xs font-medium flex items-center gap-1">
+              <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-background/90 rounded text-[10px] sm:text-xs font-medium flex items-center gap-1">
                 <ImageIcon className="w-3 h-3" />
                 {images.length}
               </div>
             )}
           </>
         ) : (
-          <Package className="w-12 h-12 text-muted-foreground" />
+          <Package className="w-8 h-8 sm:w-12 sm:h-12 text-muted-foreground" />
         )}
         
         {/* Hover actions */}
         <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
-          <Button variant="secondary" size="icon" className="h-10 w-10" onClick={onView}>
+          <Button variant="secondary" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={onView}>
             <Eye className="w-4 h-4" />
           </Button>
-          <Button variant="secondary" size="icon" className="h-10 w-10" onClick={onEdit}>
+          <Button variant="secondary" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" onClick={onEdit}>
             <Edit className="w-4 h-4" />
           </Button>
         </div>
       </div>
+
 
       {/* Info */}
       <div className="space-y-2">
