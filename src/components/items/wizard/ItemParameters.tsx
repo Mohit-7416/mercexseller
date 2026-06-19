@@ -204,22 +204,25 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
                 <CollapsibleContent>
                   <div className="p-4 pt-0 border-t border-border/50 space-y-4">
                     {/* Add Value Input */}
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Input
                         value={newValueInputs[param.id] || ''}
                         onChange={(e) => setNewValueInputs(prev => ({ ...prev, [param.id]: e.target.value }))}
                         placeholder={`Add ${param.name.toLowerCase()} value`}
                         onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameterValue(param.id))}
+                        className="flex-1 min-w-0"
                       />
                       <Button
                         type="button"
                         onClick={() => addParameterValue(param.id)}
                         disabled={!newValueInputs[param.id]?.trim()}
+                        className="shrink-0 w-full sm:w-auto"
                       >
                         <Plus className="w-4 h-4 mr-1" />
                         Add Value
                       </Button>
                     </div>
+
 
                     {/* Values List */}
                     {param.values.length > 0 ? (
@@ -254,24 +257,26 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
       {/* Add New Parameter */}
       <div className="p-4 rounded-lg border-2 border-dashed border-border/50 space-y-4">
         <Label className="text-sm font-medium">Add New Parameter</Label>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Input
             value={newParamName}
             onChange={(e) => setNewParamName(e.target.value)}
             placeholder="Parameter name (e.g., Size, Color, Material)"
-            className="flex-1"
+            className="flex-1 min-w-0"
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameter())}
           />
           <Button
             type="button"
             onClick={addParameter}
             disabled={!newParamName.trim()}
+            className="shrink-0 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 mr-1" />
             Add Parameter
           </Button>
         </div>
       </div>
+
 
       {parameters.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">

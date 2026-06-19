@@ -75,27 +75,28 @@ const Overview = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 md:grid-cols-3 gap-2 sm:gap-4 md:gap-6">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * index }}
-                className="p-6 rounded-2xl bg-card/50 border border-border/50 hover:border-border hover:bg-card/80 transition-all duration-300"
+                className="p-3 sm:p-5 md:p-6 rounded-xl md:rounded-2xl bg-card/50 border border-border/50 hover:border-border hover:bg-card/80 transition-all duration-300"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                <div className="flex items-start justify-between mb-2 sm:mb-4">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center ${
                     stat.color === 'primary' ? 'bg-primary/10' : 'bg-secondary/10'
                   }`}>
-                    <stat.icon className={`w-6 h-6 ${stat.color === 'primary' ? 'text-primary' : 'text-secondary'}`} />
+                    <stat.icon className={`w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ${stat.color === 'primary' ? 'text-primary' : 'text-secondary'}`} />
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold mb-1">{stat.value}</h3>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-0.5 sm:mb-1">{stat.value}</h3>
+                <p className="text-[11px] sm:text-xs md:text-sm text-muted-foreground leading-tight">{stat.label}</p>
               </motion.div>
             ))}
           </div>
+
 
           {/* All Listings Section */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-4">

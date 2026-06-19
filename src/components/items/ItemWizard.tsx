@@ -389,7 +389,7 @@ const ItemWizard = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin pr-1 sm:pr-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}

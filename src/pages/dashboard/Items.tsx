@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
-import { Plus, Search, Package, Loader2 } from "lucide-react";
+import { Plus, Search, Package, Loader2, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMemo, useState } from "react";
 import { useItems, Item } from "@/hooks/useItems";
 import { useCategories } from "@/hooks/useCategories";
 import { useShop } from "@/contexts/ShopContext";
@@ -12,6 +15,7 @@ import ItemWizard from "@/components/items/ItemWizard";
 import ItemViewModal from "@/components/items/ItemViewModal";
 import DuplicateItemDialog, { DuplicateAction } from "@/components/items/DuplicateItemDialog";
 import ConfirmActionDialog, { ActionType } from "@/components/items/ConfirmActionDialog";
+
 
 const Items = () => {
   const { items, loading, createItem, updateItem, deleteItem } = useItems();
@@ -25,6 +29,16 @@ const Items = () => {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  // Filter state
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterSubcategory, setFilterSubcategory] = useState<string>("all");
+  const [filterMinPrice, setFilterMinPrice] = useState<string>("");
+  const [filterMaxPrice, setFilterMaxPrice] = useState<string>("");
+  const [filterDateFrom, setFilterDateFrom] = useState<string>("");
+  const [filterDateTo, setFilterDateTo] = useState<string>("");
+
 
   // Duplicate detection state
   const [duplicateDialog, setDuplicateDialog] = useState<{
@@ -53,10 +67,53 @@ const Items = () => {
     itemName: '',
   });
 
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const activeFilterCount =
+    (filterCategory !== "all" ? 1 : 0) +
+    (filterSubcategory !== "all" ? 1 : 0) +
+    (filterMinPrice ? 1 : 0) +
+    (filterMaxPrice ? 1 : 0) +
+    (filterDateFrom ? 1 : 0) +
+    (filterDateTo ? 1 : 0);
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      if (!matchesSearch) return false;
+
+      if (filterCategory !== "all" && item.category_id !== filterCategory) return false;
+      if (filterSubcategory !== "all" && item.subcategory_id !== filterSubcategory) return false;
+
+      const min = filterMinPrice ? parseFloat(filterMinPrice) : undefined;
+      const max = filterMaxPrice ? parseFloat(filterMaxPrice) : undefined;
+      if (min !== undefined && item.price < min) return false;
+      if (max !== undefined && item.price > max) return false;
+
+      if (filterDateFrom) {
+        const from = new Date(filterDateFrom).getTime();
+        if (new Date(item.created_at).getTime() < from) return false;
+      }
+      if (filterDateTo) {
+        const to = new Date(filterDateTo).getTime() + 86400000;
+        if (new Date(item.created_at).getTime() > to) return false;
+      }
+
+      return true;
+    });
+  }, [items, searchTerm, filterCategory, filterSubcategory, filterMinPrice, filterMaxPrice, filterDateFrom, filterDateTo]);
+
+  const resetFilters = () => {
+    setFilterCategory("all");
+    setFilterSubcategory("all");
+    setFilterMinPrice("");
+    setFilterMaxPrice("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
+
+  const filterSubcategoryList = filterCategory !== "all" ? getSubcategoriesByCategory(filterCategory) : subcategories;
+
 
   const getCategoryName = (categoryId: string | null, dimensions?: any) => {
     if (dimensions?.custom_category) {
@@ -287,20 +344,88 @@ const Items = () => {
         </Button>
       </div>
 
-      {/* Search */}
+      {/* Search + Filter */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative max-w-md"
+        className="flex gap-2 max-w-xl"
       >
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by name or description..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-card/50 border-border/50"
-        />
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-card/50 border-border/50"
+          />
+        </div>
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2 shrink-0 relative">
+              <SlidersHorizontal className="w-4 h-4" />
+              <span className="hidden sm:inline">Filter</span>
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-[calc(100vw-2rem)] sm:w-80 max-h-[70vh] overflow-y-auto scrollbar-thin">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-sm">Filters</h4>
+                {activeFilterCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 text-xs gap-1">
+                    <X className="w-3 h-3" /> Reset
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Category</Label>
+                <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setFilterSubcategory("all"); }}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Subcategory</Label>
+                <Select value={filterSubcategory} onValueChange={setFilterSubcategory}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All subcategories</SelectItem>
+                    {filterSubcategoryList.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Price range (₹)</Label>
+                <div className="flex gap-2">
+                  <Input type="number" placeholder="Min" value={filterMinPrice} onChange={(e) => setFilterMinPrice(e.target.value)} className="h-9" />
+                  <Input type="number" placeholder="Max" value={filterMaxPrice} onChange={(e) => setFilterMaxPrice(e.target.value)} className="h-9" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Created date</Label>
+                <div className="flex gap-2">
+                  <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="h-9" />
+                  <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="h-9" />
+                </div>
+              </div>
+
+              <Button className="w-full" onClick={() => setFilterOpen(false)}>Apply</Button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </motion.div>
+
 
       {/* Items Grid */}
       {items.length === 0 ? (
@@ -320,7 +445,7 @@ const Items = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
         >
           {filteredItems.map((item, index) => (
             <motion.div
