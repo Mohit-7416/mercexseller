@@ -436,33 +436,40 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
                       <CollapsibleTrigger asChild>
                         <div className="flex flex-col lg:flex-row lg:items-center gap-3 p-3 sm:p-4 cursor-pointer hover:bg-muted/50 transition-colors">
                           <div className="flex-1 min-w-0 w-full">
-                            <div className="flex items-center gap-2 flex-wrap">
+                            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                               {activeParameters.map(param => {
                                 const selectedValue = getValueById(param, variant.parameterValues[param.id]);
                                 return (
-                                  <Select
-                                    key={param.id}
-                                    value={variant.parameterValues[param.id] || undefined}
-                                    onValueChange={(v) => {
-                                      updateVariantParamValue(variant.id, param.id, v);
-                                    }}
-                                  >
-                                    <SelectTrigger 
-                                      className="h-8 text-sm w-auto min-w-[100px]"
-                                      onClick={(e) => e.stopPropagation()}
+                                  <div key={param.id} className="flex flex-col gap-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                    <Label className="text-xs text-muted-foreground truncate">{param.name}</Label>
+                                    <Select
+                                      value={variant.parameterValues[param.id] || undefined}
+                                      onValueChange={(v) => {
+                                        updateVariantParamValue(variant.id, param.id, v);
+                                      }}
                                     >
-                                      <SelectValue placeholder={param.name}>
-                                        {selectedValue?.value || param.name}
-                                      </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {param.values.filter(v => v.isActive !== false).map(v => (
-                                        <SelectItem key={v.id} value={v.id}>
-                                          {v.value}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                      <SelectTrigger 
+                                        className="h-8 text-sm w-full sm:w-auto sm:min-w-[100px]"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <SelectValue placeholder={param.name}>
+                                          {selectedValue?.value || param.name}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {param.values.filter(v => v.isActive !== false).map(v => (
+                                          <SelectItem key={v.id} value={v.id}>
+                                            {v.value}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
                                 );
                               })}
                             </div>
