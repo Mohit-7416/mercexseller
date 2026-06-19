@@ -67,10 +67,53 @@ const Items = () => {
     itemName: '',
   });
 
-  const filteredItems = items.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const activeFilterCount =
+    (filterCategory !== "all" ? 1 : 0) +
+    (filterSubcategory !== "all" ? 1 : 0) +
+    (filterMinPrice ? 1 : 0) +
+    (filterMaxPrice ? 1 : 0) +
+    (filterDateFrom ? 1 : 0) +
+    (filterDateTo ? 1 : 0);
+
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      if (!matchesSearch) return false;
+
+      if (filterCategory !== "all" && item.category_id !== filterCategory) return false;
+      if (filterSubcategory !== "all" && item.subcategory_id !== filterSubcategory) return false;
+
+      const min = filterMinPrice ? parseFloat(filterMinPrice) : undefined;
+      const max = filterMaxPrice ? parseFloat(filterMaxPrice) : undefined;
+      if (min !== undefined && item.price < min) return false;
+      if (max !== undefined && item.price > max) return false;
+
+      if (filterDateFrom) {
+        const from = new Date(filterDateFrom).getTime();
+        if (new Date(item.created_at).getTime() < from) return false;
+      }
+      if (filterDateTo) {
+        const to = new Date(filterDateTo).getTime() + 86400000;
+        if (new Date(item.created_at).getTime() > to) return false;
+      }
+
+      return true;
+    });
+  }, [items, searchTerm, filterCategory, filterSubcategory, filterMinPrice, filterMaxPrice, filterDateFrom, filterDateTo]);
+
+  const resetFilters = () => {
+    setFilterCategory("all");
+    setFilterSubcategory("all");
+    setFilterMinPrice("");
+    setFilterMaxPrice("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+  };
+
+  const filterSubcategoryList = filterCategory !== "all" ? getSubcategoriesByCategory(filterCategory) : subcategories;
+
 
   const getCategoryName = (categoryId: string | null, dimensions?: any) => {
     if (dimensions?.custom_category) {
