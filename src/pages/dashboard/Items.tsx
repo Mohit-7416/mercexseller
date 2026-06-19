@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
-import { Plus, Search, Package, Loader2 } from "lucide-react";
+import { Plus, Search, Package, Loader2, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMemo, useState } from "react";
 import { useItems, Item } from "@/hooks/useItems";
 import { useCategories } from "@/hooks/useCategories";
 import { useShop } from "@/contexts/ShopContext";
@@ -12,6 +15,7 @@ import ItemWizard from "@/components/items/ItemWizard";
 import ItemViewModal from "@/components/items/ItemViewModal";
 import DuplicateItemDialog, { DuplicateAction } from "@/components/items/DuplicateItemDialog";
 import ConfirmActionDialog, { ActionType } from "@/components/items/ConfirmActionDialog";
+
 
 const Items = () => {
   const { items, loading, createItem, updateItem, deleteItem } = useItems();
