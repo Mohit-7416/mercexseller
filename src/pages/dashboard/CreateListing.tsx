@@ -87,9 +87,7 @@ const CreateListing = () => {
         category_id: formData.category_id || null,
         subcategory_id: formData.subcategory_id || null,
         scheduled_start,
-        starting_price: listingType === 'auction' && formData.starting_price
-          ? parseFloat(formData.starting_price)
-          : null
+        starting_price: null,
       });
 
       if (error) throw error;
