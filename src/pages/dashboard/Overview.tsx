@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Package, Gavel, Clock, Play, Pause, Eye, Edit, TrendingUp, ArrowUpRight, FileText, Calendar, Loader2, X } from "lucide-react";
+import { Package, Gavel, Clock, Play, Pause, Eye, Edit, TrendingUp, FileText, Calendar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useListings, Listing } from "@/hooks/useListings";
@@ -9,18 +9,24 @@ import { useProfile } from "@/hooks/useProfile";
 import { useCategories } from "@/hooks/useCategories";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format, parseISO } from "date-fns";
+import EditListingModal from "@/components/listings/EditListingModal";
 
 const Overview = () => {
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { categories } = useCategories();
-  const { listings, activeListings, liveListings, draftListings, scheduledListings, updateListing, loading: listingsLoading } = useListings();
+  const { listings, activeListings, updateListing, loading: listingsLoading } = useListings();
   const { pendingOrders, loading: ordersLoading } = useOrders();
   const { activeBids, loading: bidsLoading } = useBids();
 
   const [viewingListing, setViewingListing] = useState<Listing | null>(null);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
+  const [confirmStart, setConfirmStart] = useState<Listing | null>(null);
 
   const loading = listingsLoading || ordersLoading || bidsLoading;
 
@@ -30,11 +36,13 @@ const Overview = () => {
     { label: "Active Bids", value: activeBids.length.toString(), icon: Gavel, color: "primary" },
   ];
 
-  const toggleLive = async (id: string, currentStatus: string) => {
-    await updateListing(id, { 
-      status: currentStatus === 'live' ? 'scheduled' : 'live',
-      actual_start: currentStatus === 'live' ? null : new Date().toISOString()
-    });
+  const handleGoLive = async (listing: Listing) => {
+    await updateListing(listing.id, { status: "live", actual_start: new Date().toISOString() });
+    navigate(`/dashboard/live/${listing.id}`);
+  };
+
+  const handlePauseLive = async (listing: Listing) => {
+    await updateListing(listing.id, { status: "scheduled", actual_start: null });
   };
 
   const getCategoryName = (categoryId: string | null) => {
@@ -47,18 +55,12 @@ const Overview = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'draft':
-        return { label: 'DRAFT', class: 'bg-muted text-muted-foreground' };
-      case 'scheduled':
-        return { label: 'SCHEDULED', class: 'bg-secondary/10 text-secondary' };
-      case 'live':
-        return { label: 'LIVE', class: 'bg-primary/10 text-primary' };
-      case 'completed':
-        return { label: 'COMPLETED', class: 'bg-green-500/10 text-green-500' };
-      case 'cancelled':
-        return { label: 'CANCELLED', class: 'bg-destructive/10 text-destructive' };
-      default:
-        return { label: status.toUpperCase(), class: 'bg-muted text-muted-foreground' };
+      case 'draft': return { label: 'DRAFT', class: 'bg-muted text-muted-foreground' };
+      case 'scheduled': return { label: 'SCHEDULED', class: 'bg-secondary/10 text-secondary' };
+      case 'live': return { label: 'LIVE', class: 'bg-primary/10 text-primary' };
+      case 'completed': return { label: 'COMPLETED', class: 'bg-green-500/10 text-green-500' };
+      case 'cancelled': return { label: 'CANCELLED', class: 'bg-destructive/10 text-destructive' };
+      default: return { label: status.toUpperCase(), class: 'bg-muted text-muted-foreground' };
     }
   };
 
@@ -97,7 +99,6 @@ const Overview = () => {
             ))}
           </div>
 
-
           {/* All Listings Section */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -117,7 +118,7 @@ const Overview = () => {
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="grid gap-3">
                 {listings.map((listing, index) => {
                   const statusBadge = getStatusBadge(listing.status);
                   return (
@@ -125,67 +126,68 @@ const Overview = () => {
                       key={listing.id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * index }}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-card/30 border border-border/30 hover:border-border/50 hover:bg-card/50 transition-all"
+                      transition={{ delay: 0.05 * index }}
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 rounded-xl bg-card/30 border border-border/30 hover:border-border/50 hover:bg-card/50 transition-all overflow-hidden"
                     >
-                      {listing.status === 'live' && (
-                        <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
-                      )}
-                      {listing.status === 'draft' && (
-                        <div className="w-3 h-3 rounded-full bg-muted" />
-                      )}
-                      {listing.status === 'scheduled' && (
-                        <div className="w-3 h-3 rounded-full bg-secondary" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-mono text-muted-foreground">{listing.listing_code}</span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge.class}`}>
-                            {statusBadge.label}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                            listing.type === 'auction' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
-                          }`}>
-                            {listing.type === 'auction' ? 'Auction' : 'Sale'}
-                          </span>
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="pt-1.5 shrink-0">
+                          {listing.status === 'live' && <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />}
+                          {listing.status === 'draft' && <div className="w-2.5 h-2.5 rounded-full bg-muted" />}
+                          {listing.status === 'scheduled' && <div className="w-2.5 h-2.5 rounded-full bg-secondary" />}
+                          {(listing.status === 'completed' || listing.status === 'cancelled') && <div className="w-2.5 h-2.5 rounded-full bg-muted-foreground/40" />}
                         </div>
-                        <h3 className="font-medium truncate">{listing.title}</h3>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                          <span>{getCategoryName(listing.category_id)}</span>
-                          {listing.scheduled_start && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {format(parseISO(listing.scheduled_start), 'MMM dd, yyyy HH:mm')}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                            <span className="text-[11px] font-mono text-muted-foreground">{listing.listing_code}</span>
+                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${statusBadge.class}`}>
+                              {statusBadge.label}
                             </span>
+                            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                              listing.type === 'auction' ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'
+                            }`}>
+                              {listing.type === 'auction' ? 'Auction' : 'Sale'}
+                            </span>
+                          </div>
+                          <h3 className="font-medium text-sm sm:text-base truncate" title={listing.title}>
+                            {listing.title}
+                          </h3>
+                          {listing.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5" title={listing.description}>
+                              {listing.description}
+                            </p>
                           )}
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-[11px] text-muted-foreground">
+                            <span className="truncate max-w-[120px]">{getCategoryName(listing.category_id)}</span>
+                            {listing.scheduled_start && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {format(parseISO(listing.scheduled_start), 'MMM dd, HH:mm')}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-9 w-9"
-                          onClick={() => setEditingListing(listing)}
-                        >
+                      <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingListing(listing)}>
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-9 w-9"
-                          onClick={() => setViewingListing(listing)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingListing(listing)}>
                           <Eye className="w-4 h-4" />
                         </Button>
-                        {(listing.status === 'live' || listing.status === 'scheduled') && (
-                          <Button 
-                            variant={listing.status === 'live' ? 'destructive' : 'default'}
-                            size="icon" 
-                            className="h-9 w-9" 
-                            onClick={() => toggleLive(listing.id, listing.status)}
-                          >
-                            {listing.status === 'live' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        {listing.status === 'scheduled' && (
+                          <Button variant="default" size="icon" className="h-8 w-8" onClick={() => setConfirmStart(listing)}>
+                            <Play className="w-4 h-4" />
                           </Button>
+                        )}
+                        {listing.status === 'live' && (
+                          <>
+                            <Button variant="default" size="sm" className="h-8" onClick={() => navigate(`/dashboard/live/${listing.id}`)}>
+                              Join Live
+                            </Button>
+                            <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handlePauseLive(listing)}>
+                              <Pause className="w-4 h-4" />
+                            </Button>
+                          </>
                         )}
                       </div>
                     </motion.div>
@@ -213,22 +215,22 @@ const Overview = () => {
 
       {/* View Listing Modal */}
       <Dialog open={!!viewingListing} onOpenChange={() => setViewingListing(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[calc(100%-1rem)] max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Listing Details</DialogTitle>
           </DialogHeader>
           {viewingListing && (
-            <div className="space-y-4 py-4">
-              <div className="flex items-center gap-2">
+            <div className="space-y-4 py-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-sm text-muted-foreground">{viewingListing.listing_code}</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(viewingListing.status).class}`}>
                   {getStatusBadge(viewingListing.status).label}
                 </span>
               </div>
-              
+
               <div>
                 <label className="text-sm text-muted-foreground">Title</label>
-                <p className="font-medium">{viewingListing.title}</p>
+                <p className="font-medium break-words">{viewingListing.title}</p>
               </div>
 
               <div>
@@ -244,7 +246,7 @@ const Overview = () => {
               {viewingListing.description && (
                 <div>
                   <label className="text-sm text-muted-foreground">Description</label>
-                  <p className="text-sm">{viewingListing.description}</p>
+                  <p className="text-sm break-words whitespace-pre-wrap">{viewingListing.description}</p>
                 </div>
               )}
 
@@ -252,13 +254,6 @@ const Overview = () => {
                 <div>
                   <label className="text-sm text-muted-foreground">Scheduled Start</label>
                   <p className="font-medium">{format(parseISO(viewingListing.scheduled_start), 'PPpp')}</p>
-                </div>
-              )}
-
-              {viewingListing.starting_price && (
-                <div>
-                  <label className="text-sm text-muted-foreground">Starting Price</label>
-                  <p className="font-medium">₹{viewingListing.starting_price.toLocaleString()}</p>
                 </div>
               )}
 
@@ -272,56 +267,35 @@ const Overview = () => {
       </Dialog>
 
       {/* Edit Listing Modal */}
-      <Dialog open={!!editingListing} onOpenChange={() => setEditingListing(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Listing</DialogTitle>
-          </DialogHeader>
-          {editingListing && (
-            <div className="space-y-4 py-4">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm text-muted-foreground">{editingListing.listing_code}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(editingListing.status).class}`}>
-                  {getStatusBadge(editingListing.status).label}
-                </span>
-              </div>
-              
-              <div>
-                <label className="text-sm text-muted-foreground">Title</label>
-                <p className="font-medium">{editingListing.title}</p>
-              </div>
+      <EditListingModal listing={editingListing} onClose={() => setEditingListing(null)} />
 
-              <div>
-                <label className="text-sm text-muted-foreground">Type</label>
-                <p className="font-medium capitalize">{editingListing.type === 'live_sale' ? 'Live Sale' : 'Auction'}</p>
-              </div>
-
-              <div>
-                <label className="text-sm text-muted-foreground">Category</label>
-                <p className="font-medium">{getCategoryName(editingListing.category_id)}</p>
-              </div>
-
-              {editingListing.description && (
-                <div>
-                  <label className="text-sm text-muted-foreground">Description</label>
-                  <p className="text-sm">{editingListing.description}</p>
-                </div>
-              )}
-
-              {editingListing.scheduled_start && (
-                <div>
-                  <label className="text-sm text-muted-foreground">Scheduled Start</label>
-                  <p className="font-medium">{format(parseISO(editingListing.scheduled_start), 'PPpp')}</p>
-                </div>
-              )}
-
-              <p className="text-sm text-muted-foreground italic">
-                Full editing functionality coming soon. You can currently change the status using the controls on the listing card.
-              </p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Confirm Go Live */}
+      <AlertDialog open={!!confirmStart} onOpenChange={(o) => !o && setConfirmStart(null)}>
+        <AlertDialogContent className="w-[calc(100%-1rem)] max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start this live session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmStart?.title
+                ? `"${confirmStart.title}" will go LIVE now. Buyers can join, chat, and bid in real time. Continue?`
+                : 'This listing will go live now. Continue?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not yet</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmStart) {
+                  const l = confirmStart;
+                  setConfirmStart(null);
+                  handleGoLive(l);
+                }
+              }}
+            >
+              Yes, go live
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

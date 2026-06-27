@@ -20,6 +20,7 @@ import OrderChat from "./pages/dashboard/OrderChat";
 import Items from "./pages/dashboard/Items";
 import Analysis from "./pages/dashboard/Analysis";
 import Settings from "./pages/dashboard/Settings";
+import LiveBroadcast from "./pages/dashboard/LiveBroadcast";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,11 @@ function App() {
                   <Route path="analysis" element={<Analysis />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>
+                <Route path="/dashboard/live/:id" element={
+                  <ProtectedRoute requireShop>
+                    <LiveBroadcast />
+                  </ProtectedRoute>
+                } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

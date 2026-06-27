@@ -32,7 +32,6 @@ const CreateListing = () => {
     thumbnail: null as File | null,
     date: '',
     time: '',
-    starting_price: ''
   });
 
   const hasActiveLive = liveListings.length > 0;
@@ -88,9 +87,7 @@ const CreateListing = () => {
         category_id: formData.category_id || null,
         subcategory_id: formData.subcategory_id || null,
         scheduled_start,
-        starting_price: listingType === 'auction' && formData.starting_price
-          ? parseFloat(formData.starting_price)
-          : null
+        starting_price: null,
       });
 
       if (error) throw error;
@@ -291,20 +288,7 @@ const CreateListing = () => {
             />
           </div>
 
-          {/* Starting Price (auction only) */}
-          {listingType === 'auction' && (
-            <div className="space-y-2">
-              <Label htmlFor="starting_price">Starting Price (₹)</Label>
-              <Input
-                id="starting_price"
-                type="number"
-                placeholder="Enter starting bid price"
-                value={formData.starting_price}
-                onChange={(e) => setFormData(prev => ({ ...prev, starting_price: e.target.value }))}
-                className="bg-card/50 border-border/50"
-              />
-            </div>
-          )}
+
 
           {/* Item Selector */}
           <ListingItemSelector
