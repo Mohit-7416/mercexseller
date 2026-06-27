@@ -58,6 +58,11 @@ function App() {
                   <Route path="analysis" element={<Analysis />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>
+                <Route path="/dashboard/live/:id" element={
+                  <ProtectedRoute requireShop>
+                    <LiveBroadcast />
+                  </ProtectedRoute>
+                } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
