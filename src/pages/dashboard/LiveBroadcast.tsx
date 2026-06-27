@@ -95,7 +95,7 @@ const LiveBroadcast = () => {
             id: crypto.randomUUID(),
             user: (payload as any)?.user || "Bidder",
             text: `placed bid ₹${amt.toLocaleString()}`,
-            kind: "bid",
+            kind: "bid" as const,
             ts: Date.now(),
           }].slice(-50));
         }
