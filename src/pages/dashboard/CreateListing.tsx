@@ -32,7 +32,6 @@ const CreateListing = () => {
     thumbnail: null as File | null,
     date: '',
     time: '',
-    starting_price: ''
   });
 
   const hasActiveLive = liveListings.length > 0;
