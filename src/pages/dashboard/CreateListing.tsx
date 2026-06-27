@@ -288,20 +288,7 @@ const CreateListing = () => {
             />
           </div>
 
-          {/* Starting Price (auction only) */}
-          {listingType === 'auction' && (
-            <div className="space-y-2">
-              <Label htmlFor="starting_price">Starting Price (₹)</Label>
-              <Input
-                id="starting_price"
-                type="number"
-                placeholder="Enter starting bid price"
-                value={formData.starting_price}
-                onChange={(e) => setFormData(prev => ({ ...prev, starting_price: e.target.value }))}
-                className="bg-card/50 border-border/50"
-              />
-            </div>
-          )}
+
 
           {/* Item Selector */}
           <ListingItemSelector
