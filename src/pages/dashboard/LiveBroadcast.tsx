@@ -179,7 +179,7 @@ const LiveBroadcast = () => {
     if (!listing) return;
     if (!confirm("End this live session?")) return;
     await updateListing(listing.id, { status: "completed", actual_end: new Date().toISOString() });
-    streamRef.current?.getTracks().forEach(t => t.stop());
+    roomRef.current?.disconnect();
     navigate("/dashboard");
   };
 
