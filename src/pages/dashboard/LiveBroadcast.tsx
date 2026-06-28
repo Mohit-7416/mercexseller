@@ -27,7 +27,7 @@ const LiveBroadcast = () => {
   const listing = listings.find(l => l.id === id);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  // legacy: previously used getUserMedia; now handled by LiveKit
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
@@ -39,28 +39,50 @@ const LiveBroadcast = () => {
   const [elapsed, setElapsed] = useState(0);
   const [topBid, setTopBid] = useState<number>(0);
 
-  // Start camera/mic
+  const roomRef = useRef<import("livekit-client").Room | null>(null);
+
+  // Connect to LiveKit, publish camera + mic
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!id) return;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
+        const { Room, RoomEvent, Track } = await import("livekit-client");
+        const { data, error } = await supabase.functions.invoke("livekit-token", {
+          body: { listingId: id, role: "seller", name: profile?.full_name || "Seller" },
+        });
+        if (error || !data?.token) throw new Error(error?.message || "Token failed");
+        if (cancelled) return;
+
+        const room = new Room({ adaptiveStream: true, dynacast: true });
+        roomRef.current = room;
+
+        room.on(RoomEvent.ParticipantConnected, () => {
+          setViewers(room.numParticipants + 1);
+        });
+        room.on(RoomEvent.ParticipantDisconnected, () => {
+          setViewers(room.numParticipants + 1);
+        });
+
+        await room.connect(data.url, data.token);
+        await room.localParticipant.enableCameraAndMicrophone();
+
+        const camPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+        const track = camPub?.videoTrack;
+        if (track && videoRef.current) track.attach(videoRef.current);
+        setViewers(room.numParticipants + 1);
       } catch (e: any) {
-        toast({ title: "Camera/Mic blocked", description: e?.message || "Please allow access", variant: "destructive" });
+        toast({ title: "Live failed", description: e?.message || "Could not start broadcast", variant: "destructive" });
       } finally {
-        setStarting(false);
+        if (!cancelled) setStarting(false);
       }
     })();
     return () => {
       cancelled = true;
-      streamRef.current?.getTracks().forEach(t => t.stop());
+      roomRef.current?.disconnect();
+      roomRef.current = null;
     };
-  }, []);
+  }, [id, profile?.full_name]);
 
   // Elapsed timer
   useEffect(() => {
@@ -124,13 +146,19 @@ const LiveBroadcast = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listing?.id]);
 
-  const toggleCam = () => {
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track) { track.enabled = !track.enabled; setCamOn(track.enabled); }
+  const toggleCam = async () => {
+    const lp = roomRef.current?.localParticipant;
+    if (!lp) return;
+    const next = !camOn;
+    await lp.setCameraEnabled(next);
+    setCamOn(next);
   };
-  const toggleMic = () => {
-    const track = streamRef.current?.getAudioTracks()[0];
-    if (track) { track.enabled = !track.enabled; setMicOn(track.enabled); }
+  const toggleMic = async () => {
+    const lp = roomRef.current?.localParticipant;
+    if (!lp) return;
+    const next = !micOn;
+    await lp.setMicrophoneEnabled(next);
+    setMicOn(next);
   };
 
   const sendMessage = () => {
@@ -151,7 +179,7 @@ const LiveBroadcast = () => {
     if (!listing) return;
     if (!confirm("End this live session?")) return;
     await updateListing(listing.id, { status: "completed", actual_end: new Date().toISOString() });
-    streamRef.current?.getTracks().forEach(t => t.stop());
+    roomRef.current?.disconnect();
     navigate("/dashboard");
   };
 
