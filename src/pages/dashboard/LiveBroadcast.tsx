@@ -39,28 +39,50 @@ const LiveBroadcast = () => {
   const [elapsed, setElapsed] = useState(0);
   const [topBid, setTopBid] = useState<number>(0);
 
-  // Start camera/mic
+  const roomRef = useRef<import("livekit-client").Room | null>(null);
+
+  // Connect to LiveKit, publish camera + mic
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      if (!id) return;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
+        const { Room, RoomEvent, Track } = await import("livekit-client");
+        const { data, error } = await supabase.functions.invoke("livekit-token", {
+          body: { listingId: id, role: "seller", name: profile?.full_name || "Seller" },
+        });
+        if (error || !data?.token) throw new Error(error?.message || "Token failed");
+        if (cancelled) return;
+
+        const room = new Room({ adaptiveStream: true, dynacast: true });
+        roomRef.current = room;
+
+        room.on(RoomEvent.ParticipantConnected, () => {
+          setViewers(room.numParticipants + 1);
+        });
+        room.on(RoomEvent.ParticipantDisconnected, () => {
+          setViewers(room.numParticipants + 1);
+        });
+
+        await room.connect(data.url, data.token);
+        await room.localParticipant.enableCameraAndMicrophone();
+
+        const camPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
+        const track = camPub?.videoTrack;
+        if (track && videoRef.current) track.attach(videoRef.current);
+        setViewers(room.numParticipants + 1);
       } catch (e: any) {
-        toast({ title: "Camera/Mic blocked", description: e?.message || "Please allow access", variant: "destructive" });
+        toast({ title: "Live failed", description: e?.message || "Could not start broadcast", variant: "destructive" });
       } finally {
-        setStarting(false);
+        if (!cancelled) setStarting(false);
       }
     })();
     return () => {
       cancelled = true;
-      streamRef.current?.getTracks().forEach(t => t.stop());
+      roomRef.current?.disconnect();
+      roomRef.current = null;
     };
-  }, []);
+  }, [id, profile?.full_name]);
 
   // Elapsed timer
   useEffect(() => {
