@@ -146,13 +146,19 @@ const LiveBroadcast = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listing?.id]);
 
-  const toggleCam = () => {
-    const track = streamRef.current?.getVideoTracks()[0];
-    if (track) { track.enabled = !track.enabled; setCamOn(track.enabled); }
+  const toggleCam = async () => {
+    const lp = roomRef.current?.localParticipant;
+    if (!lp) return;
+    const next = !camOn;
+    await lp.setCameraEnabled(next);
+    setCamOn(next);
   };
-  const toggleMic = () => {
-    const track = streamRef.current?.getAudioTracks()[0];
-    if (track) { track.enabled = !track.enabled; setMicOn(track.enabled); }
+  const toggleMic = async () => {
+    const lp = roomRef.current?.localParticipant;
+    if (!lp) return;
+    const next = !micOn;
+    await lp.setMicrophoneEnabled(next);
+    setMicOn(next);
   };
 
   const sendMessage = () => {
