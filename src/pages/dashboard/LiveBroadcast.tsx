@@ -27,7 +27,7 @@ const LiveBroadcast = () => {
   const listing = listings.find(l => l.id === id);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  // legacy: previously used getUserMedia; now handled by LiveKit
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
