@@ -27,6 +27,8 @@ const Overview = () => {
   const [viewingListing, setViewingListing] = useState<Listing | null>(null);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [confirmStart, setConfirmStart] = useState<Listing | null>(null);
+  const [showAllListings, setShowAllListings] = useState(false);
+  const visibleListings = showAllListings ? listings : listings.slice(0, 5);
 
   const loading = listingsLoading || ordersLoading || bidsLoading;
 
