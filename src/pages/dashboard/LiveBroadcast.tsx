@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useListings } from "@/hooks/useListings";
 import { useProfile } from "@/hooks/useProfile";
 import { useOrders } from "@/hooks/useOrders";
-import { useShop } from "@/contexts/ShopContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Mic, MicOff, Video as VideoIcon, VideoOff,
-  Send, Heart, ThumbsDown, FileText, Package, Trophy, MessageCircle, Volume2, VolumeX, Loader2, User, Mail, Phone, MapPin,
+  Send, ThumbsUp, ThumbsDown, Package, Trophy, MessageCircle, Loader2, Mail, Phone,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -29,7 +28,6 @@ const LiveBroadcast = () => {
   const navigate = useNavigate();
   const { listings, updateListing } = useListings();
   const { profile } = useProfile();
-  const { currentShop } = useShop();
   const { orders } = useOrders();
   const listing = listings.find(l => l.id === id);
   const isAuction = listing?.type === "auction";
@@ -38,18 +36,15 @@ const LiveBroadcast = () => {
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
-  const [audioOn, setAudioOn] = useState(true);
   const [starting, setStarting] = useState(true);
   const [viewers, setViewers] = useState(1);
-  const [likes, setLikes] = useState(0);
-  const [dislikes, setDislikes] = useState(0);
+  const [myVote, setMyVote] = useState<"like" | "dislike" | null>(null);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [text, setText] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [topBid, setTopBid] = useState<number>(0);
 
   // Dialogs
-  const [showInfo, setShowInfo] = useState(false);
   const [showItems, setShowItems] = useState(false);
   const [showWinners, setShowWinners] = useState(false);
 
@@ -70,7 +65,7 @@ const LiveBroadcast = () => {
     })();
   }, [id]);
 
-  // Connect to LiveKit, publish camera + mic
+  // Connect to LiveKit
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -86,11 +81,13 @@ const LiveBroadcast = () => {
         const room = new Room({ adaptiveStream: true, dynacast: true });
         roomRef.current = room;
 
-        room.on(RoomEvent.ParticipantConnected, () => {
-          setViewers(room.numParticipants + 1);
-        });
-        room.on(RoomEvent.ParticipantDisconnected, () => {
-          setViewers(room.numParticipants + 1);
+        const updateViewers = () => setViewers(room.numParticipants + 1);
+        room.on(RoomEvent.ParticipantConnected, updateViewers);
+        room.on(RoomEvent.ParticipantDisconnected, updateViewers);
+        room.on(RoomEvent.LocalTrackPublished, (pub) => {
+          if (pub.source === Track.Source.Camera && pub.videoTrack && videoRef.current) {
+            pub.videoTrack.attach(videoRef.current);
+          }
         });
 
         await room.connect(data.url, data.token);
@@ -99,7 +96,7 @@ const LiveBroadcast = () => {
         const camPub = room.localParticipant.getTrackPublication(Track.Source.Camera);
         const track = camPub?.videoTrack;
         if (track && videoRef.current) track.attach(videoRef.current);
-        setViewers(room.numParticipants + 1);
+        updateViewers();
       } catch (e: any) {
         toast({ title: "Live failed", description: e?.message || "Could not start broadcast", variant: "destructive" });
       } finally {
@@ -118,7 +115,7 @@ const LiveBroadcast = () => {
     return () => clearInterval(i);
   }, []);
 
-  // Realtime channel for chat/likes/dislikes/viewers
+  // Realtime channel for chat + bids
   useEffect(() => {
     if (!id) return;
     const channel = supabase.channel(`live:${id}`, {
@@ -134,8 +131,6 @@ const LiveBroadcast = () => {
       .on("broadcast", { event: "chat" }, ({ payload }) => {
         setChat(c => [...c, payload as ChatMsg].slice(-50));
       })
-      .on("broadcast", { event: "like" }, () => setLikes(l => l + 1))
-      .on("broadcast", { event: "dislike" }, () => setDislikes(d => d + 1))
       .on("broadcast", { event: "bid" }, ({ payload }) => {
         const amt = Number((payload as any)?.amount || 0);
         if (amt > 0) {
@@ -175,25 +170,31 @@ const LiveBroadcast = () => {
     const lp = roomRef.current?.localParticipant;
     if (!lp) return;
     const next = !camOn;
-    await lp.setCameraEnabled(next);
-    setCamOn(next);
+    try {
+      const { Track } = await import("livekit-client");
+      await lp.setCameraEnabled(next);
+      setCamOn(next);
+      const camPub = lp.getTrackPublication(Track.Source.Camera);
+      const track = camPub?.videoTrack;
+      if (next && track && videoRef.current) {
+        track.attach(videoRef.current);
+      } else if (!next && track && videoRef.current) {
+        track.detach(videoRef.current);
+      }
+    } catch (e: any) {
+      toast({ title: "Camera error", description: e?.message || "Toggle failed", variant: "destructive" });
+    }
   };
   const toggleMic = async () => {
     const lp = roomRef.current?.localParticipant;
     if (!lp) return;
     const next = !micOn;
-    await lp.setMicrophoneEnabled(next);
-    setMicOn(next);
-  };
-  const toggleAudio = () => {
-    const next = !audioOn;
-    setAudioOn(next);
-    // mute incoming audio tracks
-    roomRef.current?.remoteParticipants.forEach(p => {
-      p.audioTrackPublications.forEach(pub => {
-        (pub.track as any)?.setVolume?.(next ? 1 : 0);
-      });
-    });
+    try {
+      await lp.setMicrophoneEnabled(next);
+      setMicOn(next);
+    } catch (e: any) {
+      toast({ title: "Mic error", description: e?.message || "Toggle failed", variant: "destructive" });
+    }
   };
 
   const sendMessage = () => {
@@ -253,37 +254,29 @@ const LiveBroadcast = () => {
       </div>
 
       {/* Right action rail */}
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
-        <RailButton onClick={toggleAudio} label={audioOn ? "Mute" : "Unmute"}>
-          {audioOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-red-400" />}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-10">
+        <RailButton
+          onClick={() => setMyVote(v => (v === "like" ? null : "like"))}
+          label={String(myVote === "like" ? 1 : 0)}
+          active={myVote === "like"}
+        >
+          <ThumbsUp className={`w-5 h-5 ${myVote === "like" ? "fill-current text-primary" : ""}`} />
         </RailButton>
 
-        <RailButton onClick={() => setShowInfo(true)} label="Details">
-          <FileText className="w-5 h-5" />
+        <RailButton
+          onClick={() => setMyVote(v => (v === "dislike" ? null : "dislike"))}
+          label={String(myVote === "dislike" ? 1 : 0)}
+          active={myVote === "dislike"}
+        >
+          <ThumbsDown className={`w-5 h-5 ${myVote === "dislike" ? "fill-current text-red-400" : ""}`} />
         </RailButton>
 
-        <RailButton onClick={() => {
-          setLikes(l => l + 1);
-          channelRef.current?.send({ type: "broadcast", event: "like", payload: {} });
-        }} label={String(likes)}>
-          <Heart className="w-5 h-5" />
-        </RailButton>
-
-        <RailButton onClick={() => {
-          setDislikes(d => d + 1);
-          channelRef.current?.send({ type: "broadcast", event: "dislike", payload: {} });
-        }} label={String(dislikes)}>
-          <ThumbsDown className="w-5 h-5" />
+        <RailButton onClick={() => setShowItems(true)} label="Items">
+          <Package className="w-5 h-5" />
         </RailButton>
 
         {isAuction && (
-          <RailButton onClick={() => setShowItems(true)} label="Items">
-            <Package className="w-5 h-5" />
-          </RailButton>
-        )}
-
-        {isAuction && (
-          <RailButton onClick={() => setShowWinners(true)} label="Buyers">
+          <RailButton onClick={() => setShowWinners(true)} label="Winners">
             <Trophy className="w-5 h-5" />
           </RailButton>
         )}
@@ -358,89 +351,52 @@ const LiveBroadcast = () => {
         </div>
       </div>
 
-      {/* Info dialog: listing + seller */}
-      <Dialog open={showInfo} onOpenChange={setShowInfo}>
+      {/* Items dialog (both live and auction) */}
+      <Dialog open={showItems} onOpenChange={setShowItems}>
         <DialogContent className="w-[calc(100%-1rem)] max-w-md">
           <DialogHeader>
-            <DialogTitle>{isAuction ? "Auction" : "Live"} Details</DialogTitle>
-            <DialogDescription>Session and seller information</DialogDescription>
+            <DialogTitle>{isAuction ? "Auction" : "Sale"} Items</DialogTitle>
+            <DialogDescription>{linkedItems.length} item(s) in this session</DialogDescription>
           </DialogHeader>
-          {listing && (
-            <div className="space-y-3 text-sm">
-              <Section title="Session">
-                <Row k="Code" v={listing.listing_code} />
-                <Row k="Title" v={listing.title} />
-                {listing.description && <Row k="Description" v={listing.description} />}
-                <Row k="Type" v={isAuction ? "Auction" : "Live Sale"} />
-                <Row k="Status" v={listing.status} />
-                {listing.scheduled_start && <Row k="Scheduled" v={new Date(listing.scheduled_start).toLocaleString()} />}
-                {listing.actual_start && <Row k="Started" v={new Date(listing.actual_start).toLocaleString()} />}
-                <Row k="Viewers" v={String(viewers)} />
-                <Row k="Likes / Dislikes" v={`${likes} / ${dislikes}`} />
-                {isAuction && topBid > 0 && <Row k="Top Bid" v={`₹${topBid.toLocaleString()}`} />}
-              </Section>
-              <Section title="Seller">
-                <Row icon={<User className="w-3.5 h-3.5" />} k="Name" v={profile?.full_name || "—"} />
-                {profile?.email && <Row icon={<Mail className="w-3.5 h-3.5" />} k="Email" v={profile.email} />}
-                {profile?.phone && <Row icon={<Phone className="w-3.5 h-3.5" />} k="Phone" v={profile.phone} />}
-                {currentShop?.name && <Row k="Shop" v={currentShop.name} />}
-                {currentShop?.city && (
-                  <Row icon={<MapPin className="w-3.5 h-3.5" />} k="Location" v={[currentShop.city, currentShop.state, currentShop.country].filter(Boolean).join(", ")} />
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {linkedItems.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No items linked to this session.</p>
+            )}
+            {linkedItems.map((li: any) => (
+              <div key={li.id} className="flex items-center gap-3 p-2 rounded-lg border">
+                <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
+                  <Package className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{li.items?.name || "Item"}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {li.items?.sku && `SKU: ${li.items.sku}`}
+                    {li.quantity != null && ` · Qty: ${li.quantity}`}
+                  </p>
+                </div>
+                {li.starting_price != null && (
+                  <span className="text-sm font-semibold">₹{Number(li.starting_price).toLocaleString()}</span>
                 )}
-              </Section>
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Items dialog (auction only) */}
-      {isAuction && (
-        <Dialog open={showItems} onOpenChange={setShowItems}>
-          <DialogContent className="w-[calc(100%-1rem)] max-w-md">
-            <DialogHeader>
-              <DialogTitle>Auction Items</DialogTitle>
-              <DialogDescription>{linkedItems.length} item(s) in this auction</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {linkedItems.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-6">No items linked to this auction.</p>
-              )}
-              {linkedItems.map((li: any) => (
-                <div key={li.id} className="flex items-center gap-3 p-2 rounded-lg border">
-                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
-                    <Package className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{li.items?.name || "Item"}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {li.items?.sku && `SKU: ${li.items.sku}`}
-                      {li.quantity != null && ` · Qty: ${li.quantity}`}
-                    </p>
-                  </div>
-                  {li.starting_price != null && (
-                    <span className="text-sm font-semibold">₹{Number(li.starting_price).toLocaleString()}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Winners / purchasers dialog (auction only) */}
+      {/* Winners dialog (auction only) */}
       {isAuction && (
         <Dialog open={showWinners} onOpenChange={setShowWinners}>
           <DialogContent className="w-[calc(100%-1rem)] max-w-md">
             <DialogHeader>
-              <DialogTitle>Auction Buyers</DialogTitle>
-              <DialogDescription>{purchasers.length} purchaser(s)</DialogDescription>
+              <DialogTitle>Auction Winners</DialogTitle>
+              <DialogDescription>{purchasers.length} winner(s)</DialogDescription>
             </DialogHeader>
             <div className="space-y-2 max-h-[60vh] overflow-y-auto">
               {purchasers.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-6">No purchases yet for this auction.</p>
+                <p className="text-sm text-muted-foreground text-center py-6">No winners yet for this auction.</p>
               )}
               {purchasers.map(o => (
-                <div key={o.id} className="p-3 rounded-lg border space-y-1">
+                <div key={o.id} className="p-3 rounded-lg border space-y-1.5">
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-sm">{o.buyer_name || "Buyer"}</p>
                     <span className="text-sm font-bold">₹{Number(o.total).toLocaleString()}</span>
@@ -450,6 +406,17 @@ const LiveBroadcast = () => {
                     {o.buyer_phone && <p className="flex items-center gap-1"><Phone className="w-3 h-3" />{o.buyer_phone}</p>}
                     <p>Order #{o.order_number} · {o.status}</p>
                   </div>
+                  {Array.isArray((o as any).items) && (o as any).items.length > 0 && (
+                    <div className="pt-1.5 border-t space-y-1">
+                      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Items Won</p>
+                      {(o as any).items.map((it: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between text-xs">
+                          <span className="truncate">{it.name || it.item_name || "Item"} × {it.quantity || 1}</span>
+                          {it.price != null && <span className="font-medium">₹{Number(it.price).toLocaleString()}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -460,28 +427,14 @@ const LiveBroadcast = () => {
   );
 };
 
-const RailButton = ({ children, onClick, label }: { children: React.ReactNode; onClick?: () => void; label?: string }) => (
+const RailButton = ({ children, onClick, label, active }: { children: React.ReactNode; onClick?: () => void; label?: string; active?: boolean }) => (
   <button
     onClick={onClick}
-    className="relative w-11 h-11 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 flex items-center justify-center transition"
+    className={`relative w-11 h-11 rounded-full backdrop-blur flex items-center justify-center transition ${active ? "bg-white/20" : "bg-black/40 hover:bg-black/60"}`}
   >
     {children}
     {label && <span className="absolute -bottom-4 text-[10px] font-semibold text-white/90">{label}</span>}
   </button>
-);
-
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="space-y-1.5">
-    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
-    <div className="space-y-1 rounded-lg border p-3">{children}</div>
-  </div>
-);
-
-const Row = ({ k, v, icon }: { k: string; v: string; icon?: React.ReactNode }) => (
-  <div className="flex items-start justify-between gap-3 text-sm">
-    <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">{icon}{k}</span>
-    <span className="text-right break-words">{v}</span>
-  </div>
 );
 
 export default LiveBroadcast;

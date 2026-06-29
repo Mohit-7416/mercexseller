@@ -27,6 +27,8 @@ const Overview = () => {
   const [viewingListing, setViewingListing] = useState<Listing | null>(null);
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [confirmStart, setConfirmStart] = useState<Listing | null>(null);
+  const [showAllListings, setShowAllListings] = useState(false);
+  const visibleListings = showAllListings ? listings : listings.slice(0, 5);
 
   const loading = listingsLoading || ordersLoading || bidsLoading;
 
@@ -119,7 +121,7 @@ const Overview = () => {
               </div>
             ) : (
               <div className="grid gap-3">
-                {listings.map((listing, index) => {
+                {visibleListings.map((listing, index) => {
                   const statusBadge = getStatusBadge(listing.status);
                   return (
                     <motion.div
@@ -193,6 +195,13 @@ const Overview = () => {
                     </motion.div>
                   );
                 })}
+              </div>
+            )}
+            {listings.length > 5 && (
+              <div className="flex justify-center">
+                <Button variant="outline" size="sm" onClick={() => setShowAllListings(s => !s)}>
+                  {showAllListings ? "Show less" : `Show more (${listings.length - 5})`}
+                </Button>
               </div>
             )}
           </motion.div>
