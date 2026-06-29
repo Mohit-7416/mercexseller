@@ -121,7 +121,7 @@ const Overview = () => {
               </div>
             ) : (
               <div className="grid gap-3">
-                {listings.map((listing, index) => {
+                {visibleListings.map((listing, index) => {
                   const statusBadge = getStatusBadge(listing.status);
                   return (
                     <motion.div
