@@ -197,6 +197,13 @@ const Overview = () => {
                 })}
               </div>
             )}
+            {listings.length > 5 && (
+              <div className="flex justify-center">
+                <Button variant="outline" size="sm" onClick={() => setShowAllListings(s => !s)}>
+                  {showAllListings ? "Show less" : `Show more (${listings.length - 5})`}
+                </Button>
+              </div>
+            )}
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="grid grid-cols-2 md:grid-cols-4 gap-4">
