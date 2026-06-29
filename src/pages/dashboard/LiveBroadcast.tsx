@@ -3,11 +3,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useListings } from "@/hooks/useListings";
 import { useProfile } from "@/hooks/useProfile";
+import { useOrders } from "@/hooks/useOrders";
+import { useShop } from "@/contexts/ShopContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft, Mic, MicOff, Video as VideoIcon, VideoOff,
-  Send, Heart, Share2, FileText, Package, Trophy, MessageCircle, Volume2, Loader2,
+  Send, Heart, ThumbsDown, FileText, Package, Trophy, MessageCircle, Volume2, VolumeX, Loader2, User, Mail, Phone, MapPin,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -24,22 +29,46 @@ const LiveBroadcast = () => {
   const navigate = useNavigate();
   const { listings, updateListing } = useListings();
   const { profile } = useProfile();
+  const { currentShop } = useShop();
+  const { orders } = useOrders();
   const listing = listings.find(l => l.id === id);
+  const isAuction = listing?.type === "auction";
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  // legacy: previously used getUserMedia; now handled by LiveKit
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
+  const [audioOn, setAudioOn] = useState(true);
   const [starting, setStarting] = useState(true);
   const [viewers, setViewers] = useState(1);
   const [likes, setLikes] = useState(0);
+  const [dislikes, setDislikes] = useState(0);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [text, setText] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [topBid, setTopBid] = useState<number>(0);
 
+  // Dialogs
+  const [showInfo, setShowInfo] = useState(false);
+  const [showItems, setShowItems] = useState(false);
+  const [showWinners, setShowWinners] = useState(false);
+
+  // Linked items for this listing
+  const [linkedItems, setLinkedItems] = useState<any[]>([]);
+  const purchasers = orders.filter(o => o.listing_id === id);
+
   const roomRef = useRef<import("livekit-client").Room | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("listing_items")
+        .select("*, items(*)")
+        .eq("listing_id", id);
+      setLinkedItems(data || []);
+    })();
+  }, [id]);
 
   // Connect to LiveKit, publish camera + mic
   useEffect(() => {
@@ -84,13 +113,12 @@ const LiveBroadcast = () => {
     };
   }, [id, profile?.full_name]);
 
-  // Elapsed timer
   useEffect(() => {
     const i = setInterval(() => setElapsed(e => e + 1), 1000);
     return () => clearInterval(i);
   }, []);
 
-  // Realtime channel for chat/likes/viewers
+  // Realtime channel for chat/likes/dislikes/viewers
   useEffect(() => {
     if (!id) return;
     const channel = supabase.channel(`live:${id}`, {
@@ -106,9 +134,8 @@ const LiveBroadcast = () => {
       .on("broadcast", { event: "chat" }, ({ payload }) => {
         setChat(c => [...c, payload as ChatMsg].slice(-50));
       })
-      .on("broadcast", { event: "like" }, () => {
-        setLikes(l => l + 1);
-      })
+      .on("broadcast", { event: "like" }, () => setLikes(l => l + 1))
+      .on("broadcast", { event: "dislike" }, () => setDislikes(d => d + 1))
       .on("broadcast", { event: "bid" }, ({ payload }) => {
         const amt = Number((payload as any)?.amount || 0);
         if (amt > 0) {
@@ -125,7 +152,6 @@ const LiveBroadcast = () => {
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           await channel.track({ role: "seller", name: profile?.full_name || "Seller" });
-          // welcome message
           setChat(c => [...c, {
             id: "welcome", user: "System", text: "You're live!", kind: "join", ts: Date.now(),
           }]);
@@ -138,7 +164,6 @@ const LiveBroadcast = () => {
     };
   }, [id, profile?.id, profile?.full_name]);
 
-  // Mark listing live on mount
   useEffect(() => {
     if (listing && listing.status !== "live") {
       updateListing(listing.id, { status: "live", actual_start: new Date().toISOString() });
@@ -159,6 +184,16 @@ const LiveBroadcast = () => {
     const next = !micOn;
     await lp.setMicrophoneEnabled(next);
     setMicOn(next);
+  };
+  const toggleAudio = () => {
+    const next = !audioOn;
+    setAudioOn(next);
+    // mute incoming audio tracks
+    roomRef.current?.remoteParticipants.forEach(p => {
+      p.audioTrackPublications.forEach(pub => {
+        pub.track?.setVolume(next ? 1 : 0);
+      });
+    });
   };
 
   const sendMessage = () => {
@@ -183,20 +218,11 @@ const LiveBroadcast = () => {
     navigate("/dashboard");
   };
 
-  const share = async () => {
-    const url = window.location.href;
-    try {
-      if (navigator.share) await navigator.share({ title: listing?.title || "Live", url });
-      else { await navigator.clipboard.writeText(url); toast({ title: "Link copied" }); }
-    } catch {}
-  };
-
   const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
   const ss = String(elapsed % 60).padStart(2, "0");
 
   return (
     <div className="fixed inset-0 bg-black text-white overflow-hidden">
-      {/* Video layer */}
       <video
         ref={videoRef}
         autoPlay
@@ -218,39 +244,54 @@ const LiveBroadcast = () => {
         <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-600 text-white text-sm font-semibold">
             <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            LIVE · {viewers}
+            {isAuction ? "AUCTION" : "LIVE"} · {viewers} watching
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 text-xs backdrop-blur">
-            📣 Explaining · {mm}:{ss}
+            ⏱ {mm}:{ss}
           </div>
         </div>
       </div>
 
       {/* Right action rail */}
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-10">
-        <RailButton onClick={() => {}}>
-          <Volume2 className="w-5 h-5" />
+        <RailButton onClick={toggleAudio} label={audioOn ? "Mute" : "Unmute"}>
+          {audioOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-red-400" />}
         </RailButton>
-        <RailButton onClick={share}>
-          <Share2 className="w-5 h-5" />
-        </RailButton>
-        <RailButton onClick={() => {}}>
+
+        <RailButton onClick={() => setShowInfo(true)} label="Details">
           <FileText className="w-5 h-5" />
         </RailButton>
+
         <RailButton onClick={() => {
           setLikes(l => l + 1);
           channelRef.current?.send({ type: "broadcast", event: "like", payload: {} });
-        }}>
+        }} label={String(likes)}>
           <Heart className="w-5 h-5" />
-          {likes > 0 && <span className="absolute -bottom-5 text-[11px] font-semibold">{likes}</span>}
         </RailButton>
-        <RailButton onClick={() => {}}>
-          <Package className="w-5 h-5" />
+
+        <RailButton onClick={() => {
+          setDislikes(d => d + 1);
+          channelRef.current?.send({ type: "broadcast", event: "dislike", payload: {} });
+        }} label={String(dislikes)}>
+          <ThumbsDown className="w-5 h-5" />
         </RailButton>
-        <RailButton onClick={() => {}}>
-          <Trophy className="w-5 h-5" />
-        </RailButton>
-        <RailButton onClick={() => {}}>
+
+        {isAuction && (
+          <RailButton onClick={() => setShowItems(true)} label="Items">
+            <Package className="w-5 h-5" />
+          </RailButton>
+        )}
+
+        {isAuction && (
+          <RailButton onClick={() => setShowWinners(true)} label="Buyers">
+            <Trophy className="w-5 h-5" />
+          </RailButton>
+        )}
+
+        <RailButton onClick={() => {
+          const el = document.getElementById("live-chat-input") as HTMLInputElement | null;
+          el?.focus();
+        }} label="Chat">
           <MessageCircle className="w-5 h-5" />
         </RailButton>
       </div>
@@ -270,7 +311,7 @@ const LiveBroadcast = () => {
         ))}
       </div>
 
-      {/* Bottom bar: item + input + bid controls */}
+      {/* Bottom bar */}
       <div className="absolute inset-x-0 bottom-0 p-3 space-y-2 bg-gradient-to-t from-black/80 to-transparent z-10">
         {listing && (
           <div className="flex items-center gap-3 bg-black/40 backdrop-blur rounded-xl p-2 pr-3">
@@ -281,7 +322,7 @@ const LiveBroadcast = () => {
               <p className="text-xs text-white/70 truncate">{listing.listing_code}</p>
               <p className="text-sm font-semibold truncate">{listing.title}</p>
             </div>
-            {topBid > 0 && (
+            {isAuction && topBid > 0 && (
               <div className="text-right">
                 <p className="text-[10px] text-white/70">Top Bid</p>
                 <p className="text-sm font-bold text-yellow-300">₹{topBid.toLocaleString()}</p>
@@ -292,6 +333,7 @@ const LiveBroadcast = () => {
 
         <div className="flex items-center gap-2">
           <Input
+            id="live-chat-input"
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
@@ -311,21 +353,135 @@ const LiveBroadcast = () => {
             {camOn ? <VideoIcon className="w-4 h-4" /> : <VideoOff className="w-4 h-4 text-red-400" />}
           </Button>
           <Button variant="destructive" className="rounded-full flex-1" onClick={endLive}>
-            End Live
+            End {isAuction ? "Auction" : "Live"}
           </Button>
         </div>
       </div>
+
+      {/* Info dialog: listing + seller */}
+      <Dialog open={showInfo} onOpenChange={setShowInfo}>
+        <DialogContent className="w-[calc(100%-1rem)] max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isAuction ? "Auction" : "Live"} Details</DialogTitle>
+            <DialogDescription>Session and seller information</DialogDescription>
+          </DialogHeader>
+          {listing && (
+            <div className="space-y-3 text-sm">
+              <Section title="Session">
+                <Row k="Code" v={listing.listing_code} />
+                <Row k="Title" v={listing.title} />
+                {listing.description && <Row k="Description" v={listing.description} />}
+                <Row k="Type" v={isAuction ? "Auction" : "Live Sale"} />
+                <Row k="Status" v={listing.status} />
+                {listing.scheduled_start && <Row k="Scheduled" v={new Date(listing.scheduled_start).toLocaleString()} />}
+                {listing.actual_start && <Row k="Started" v={new Date(listing.actual_start).toLocaleString()} />}
+                <Row k="Viewers" v={String(viewers)} />
+                <Row k="Likes / Dislikes" v={`${likes} / ${dislikes}`} />
+                {isAuction && topBid > 0 && <Row k="Top Bid" v={`₹${topBid.toLocaleString()}`} />}
+              </Section>
+              <Section title="Seller">
+                <Row icon={<User className="w-3.5 h-3.5" />} k="Name" v={profile?.full_name || "—"} />
+                {profile?.email && <Row icon={<Mail className="w-3.5 h-3.5" />} k="Email" v={profile.email} />}
+                {profile?.phone && <Row icon={<Phone className="w-3.5 h-3.5" />} k="Phone" v={profile.phone} />}
+                {currentShop?.name && <Row k="Shop" v={currentShop.name} />}
+                {currentShop?.city && (
+                  <Row icon={<MapPin className="w-3.5 h-3.5" />} k="Location" v={[currentShop.city, currentShop.state, currentShop.country].filter(Boolean).join(", ")} />
+                )}
+              </Section>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Items dialog (auction only) */}
+      {isAuction && (
+        <Dialog open={showItems} onOpenChange={setShowItems}>
+          <DialogContent className="w-[calc(100%-1rem)] max-w-md">
+            <DialogHeader>
+              <DialogTitle>Auction Items</DialogTitle>
+              <DialogDescription>{linkedItems.length} item(s) in this auction</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {linkedItems.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">No items linked to this auction.</p>
+              )}
+              {linkedItems.map((li: any) => (
+                <div key={li.id} className="flex items-center gap-3 p-2 rounded-lg border">
+                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{li.items?.name || "Item"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {li.items?.sku && `SKU: ${li.items.sku}`}
+                      {li.quantity != null && ` · Qty: ${li.quantity}`}
+                    </p>
+                  </div>
+                  {li.starting_price != null && (
+                    <span className="text-sm font-semibold">₹{Number(li.starting_price).toLocaleString()}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Winners / purchasers dialog (auction only) */}
+      {isAuction && (
+        <Dialog open={showWinners} onOpenChange={setShowWinners}>
+          <DialogContent className="w-[calc(100%-1rem)] max-w-md">
+            <DialogHeader>
+              <DialogTitle>Auction Buyers</DialogTitle>
+              <DialogDescription>{purchasers.length} purchaser(s)</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {purchasers.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">No purchases yet for this auction.</p>
+              )}
+              {purchasers.map(o => (
+                <div key={o.id} className="p-3 rounded-lg border space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-sm">{o.buyer_name || "Buyer"}</p>
+                    <span className="text-sm font-bold">₹{Number(o.total).toLocaleString()}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    {o.buyer_email && <p className="flex items-center gap-1"><Mail className="w-3 h-3" />{o.buyer_email}</p>}
+                    {o.buyer_phone && <p className="flex items-center gap-1"><Phone className="w-3 h-3" />{o.buyer_phone}</p>}
+                    <p>Order #{o.order_number} · {o.status}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
 
-const RailButton = ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) => (
+const RailButton = ({ children, onClick, label }: { children: React.ReactNode; onClick?: () => void; label?: string }) => (
   <button
     onClick={onClick}
     className="relative w-11 h-11 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 flex items-center justify-center transition"
   >
     {children}
+    {label && <span className="absolute -bottom-4 text-[10px] font-semibold text-white/90">{label}</span>}
   </button>
+);
+
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
+    <div className="space-y-1 rounded-lg border p-3">{children}</div>
+  </div>
+);
+
+const Row = ({ k, v, icon }: { k: string; v: string; icon?: React.ReactNode }) => (
+  <div className="flex items-start justify-between gap-3 text-sm">
+    <span className="text-muted-foreground flex items-center gap-1.5 shrink-0">{icon}{k}</span>
+    <span className="text-right break-words">{v}</span>
+  </div>
 );
 
 export default LiveBroadcast;
