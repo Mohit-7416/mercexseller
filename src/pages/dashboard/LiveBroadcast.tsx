@@ -191,7 +191,7 @@ const LiveBroadcast = () => {
     // mute incoming audio tracks
     roomRef.current?.remoteParticipants.forEach(p => {
       p.audioTrackPublications.forEach(pub => {
-        pub.track?.setVolume(next ? 1 : 0);
+        (pub.track as any)?.setVolume?.(next ? 1 : 0);
       });
     });
   };
