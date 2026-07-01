@@ -207,8 +207,9 @@ const CreateListing = () => {
 
   return (
     <div className="max-w-3xl">
+      <BackButton />
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Create Listing</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Create Listing</h1>
         <p className="text-muted-foreground">Set up a new auction or sale for your products</p>
       </div>
 
@@ -382,13 +383,98 @@ const CreateListing = () => {
           {/* Thumbnail Upload */}
           <div className="space-y-2">
             <Label>Thumbnail (Optional)</Label>
-            <div className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center hover:border-border transition-colors">
-              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-2">
-                Drag and drop an image, or click to browse
-              </p>
-              <Button variant="outline" size="sm">Choose File</Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+              className="hidden"
+            />
+            {formData.thumbnail_url ? (
+              <div className="relative rounded-xl overflow-hidden border border-border/50 group">
+                <img src={formData.thumbnail_url} alt="Thumbnail" className="w-full h-48 object-cover" />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8"
+                  onClick={() => setFormData(prev => ({ ...prev, thumbnail_url: '' }))}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                onClick={() => !uploadingThumb && fileInputRef.current?.click()}
+                className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center hover:border-border transition-colors cursor-pointer"
+              >
+                {uploadingThumb ? (
+                  <Loader2 className="w-8 h-8 text-muted-foreground mx-auto mb-3 animate-spin" />
+                ) : (
+                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                )}
+                <p className="text-sm text-muted-foreground mb-2">
+                  {uploadingThumb ? "Uploading..." : "Click to choose an image (max 5MB)"}
+                </p>
+                <Button variant="outline" size="sm" type="button" disabled={uploadingThumb}>
+                  Choose File
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Recurring schedule */}
+          <div className="p-4 rounded-xl bg-card/30 border border-border/30 space-y-3">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="recurring"
+                checked={recurring}
+                onCheckedChange={(v) => setRecurring(!!v)}
+              />
+              <Label htmlFor="recurring" className="flex items-center gap-2 cursor-pointer">
+                <Repeat className="w-4 h-4" />
+                Repeat weekly on selected days
+              </Label>
             </div>
+            {recurring && (
+              <div className="space-y-3 pl-1">
+                <div>
+                  <Label className="text-xs mb-2 block">Days of week</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {DAYS.map((label, idx) => {
+                      const active = recurringDays.includes(idx);
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => toggleDay(idx)}
+                          className={`h-9 min-w-[44px] px-3 rounded-lg text-sm font-medium transition-colors border ${
+                            active
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card/50 border-border/50 hover:border-border"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-1.5 max-w-[160px]">
+                  <Label htmlFor="weeks" className="text-xs">For how many weeks</Label>
+                  <Input
+                    id="weeks"
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={recurringWeeks}
+                    onChange={(e) => setRecurringWeeks(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  One listing will be auto-created for each selected weekday over {recurringWeeks} week(s), using the start time below.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Date & Time */}
