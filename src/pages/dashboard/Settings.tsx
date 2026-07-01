@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Store, Bell, Save, LogOut, Loader2 } from "lucide-react";
+import { User, Store, Bell, Save, LogOut, Loader2, Palette, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,8 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
 import { useShop } from "@/contexts/ShopContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/hooks/useTheme";
+import BackButton from "@/components/BackButton";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -137,9 +139,12 @@ const Settings = () => {
     navigate("/");
   };
 
+  const { theme, setTheme } = useTheme();
+
   const tabs = [
     { id: "personal", label: "Personal Info", icon: User },
     { id: "shop", label: "Shop Details", icon: Store },
+    { id: "appearance", label: "Appearance", icon: Palette },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
 
