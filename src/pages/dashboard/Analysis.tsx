@@ -6,6 +6,7 @@ import { useOrders } from "@/hooks/useOrders";
 import { useListings } from "@/hooks/useListings";
 import { format, subDays, startOfDay, parseISO, isWithinInterval } from "date-fns";
 import { Button } from "@/components/ui/button";
+import BackButton from "@/components/BackButton";
 
 type ViewType = "auctions" | "sales" | "all";
 type TimeRange = "7days" | "30days" | "90days";
@@ -90,6 +91,7 @@ const Analysis = () => {
 
   return (
     <div className="space-y-8">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

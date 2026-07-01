@@ -15,6 +15,7 @@ import ItemWizard from "@/components/items/ItemWizard";
 import ItemViewModal from "@/components/items/ItemViewModal";
 import DuplicateItemDialog, { DuplicateAction } from "@/components/items/DuplicateItemDialog";
 import ConfirmActionDialog, { ActionType } from "@/components/items/ConfirmActionDialog";
+import BackButton from "@/components/BackButton";
 
 
 const Items = () => {
@@ -332,6 +333,7 @@ const Items = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

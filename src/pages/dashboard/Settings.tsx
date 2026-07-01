@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Store, Bell, Save, LogOut, Loader2 } from "lucide-react";
+import { User, Store, Bell, Save, LogOut, Loader2, Palette, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,8 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
 import { useShop } from "@/contexts/ShopContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/hooks/useTheme";
+import BackButton from "@/components/BackButton";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -137,9 +139,12 @@ const Settings = () => {
     navigate("/");
   };
 
+  const { theme, setTheme } = useTheme();
+
   const tabs = [
     { id: "personal", label: "Personal Info", icon: User },
     { id: "shop", label: "Shop Details", icon: Store },
+    { id: "appearance", label: "Appearance", icon: Palette },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
 
@@ -155,14 +160,15 @@ const Settings = () => {
 
   return (
     <div className="max-w-3xl">
+      <BackButton />
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Settings</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
         <p className="text-muted-foreground">Manage your account preferences</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 p-1 rounded-lg bg-card/50 border border-border/50 w-fit">
+      <div className="flex flex-wrap gap-2 mb-8 p-1 rounded-lg bg-card/50 border border-border/50 w-full sm:w-fit">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -404,6 +410,41 @@ const Settings = () => {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {activeTab === "appearance" && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium mb-1">Theme</h3>
+              <p className="text-sm text-muted-foreground mb-4">Choose how the dashboard looks on this device.</p>
+              <div className="grid grid-cols-2 gap-3 max-w-md">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    theme === "light"
+                      ? "border-primary bg-primary/5"
+                      : "border-border/50 bg-card/30 hover:border-border"
+                  }`}
+                >
+                  <Sun className="w-5 h-5 mb-2 text-secondary" />
+                  <p className="font-medium">Light</p>
+                  <p className="text-xs text-muted-foreground">Bright, minimal</p>
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    theme === "dark"
+                      ? "border-primary bg-primary/5"
+                      : "border-border/50 bg-card/30 hover:border-border"
+                  }`}
+                >
+                  <Moon className="w-5 h-5 mb-2 text-primary" />
+                  <p className="font-medium">Dark</p>
+                  <p className="text-xs text-muted-foreground">Premium, immersive</p>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,18 +1,21 @@
 import { motion } from "framer-motion";
-import { Gavel, ShoppingBag, Upload, Calendar, Clock, Sparkles, Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Gavel, ShoppingBag, Upload, Calendar, Clock, Sparkles, Loader2, ArrowLeft, AlertTriangle, X, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
 import { useListings, ListingType } from "@/hooks/useListings";
 import { useItems } from "@/hooks/useItems";
+import { useShop } from "@/contexts/ShopContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ListingItemSelector, { SelectedListingItem } from "@/components/listings/ListingItemSelector";
+import BackButton from "@/components/BackButton";
 
 const CreateListing = () => {
   const { toast } = useToast();
@@ -20,19 +23,28 @@ const CreateListing = () => {
   const { categories, subcategories, getSubcategoriesByCategory, loading: categoriesLoading } = useCategories();
   const { createListing, liveListings } = useListings();
   const { items, loading: itemsLoading } = useItems();
+  const { currentShop } = useShop();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [listingType, setListingType] = useState<ListingType | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingThumb, setUploadingThumb] = useState(false);
   const [selectedItems, setSelectedItems] = useState<SelectedListingItem[]>([]);
   const [formData, setFormData] = useState({
     category_id: '',
     subcategory_id: '',
     title: '',
     description: '',
-    thumbnail: null as File | null,
+    thumbnail_url: '' as string,
     date: '',
     time: '',
   });
+
+  // Recurring
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const [recurring, setRecurring] = useState(false);
+  const [recurringDays, setRecurringDays] = useState<number[]>([]);
+  const [recurringWeeks, setRecurringWeeks] = useState(4);
 
   const hasActiveLive = liveListings.length > 0;
   const subcategoriesList = formData.category_id ? getSubcategoriesByCategory(formData.category_id) : [];
@@ -49,6 +61,52 @@ const CreateListing = () => {
     setSelectedItems(prev =>
       prev.map(i => (i.item_id === itemId ? { ...i, quantity } : i))
     );
+  };
+
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentShop) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Thumbnail must be under 5MB.", variant: "destructive" });
+      return;
+    }
+    setUploadingThumb(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${currentShop.id}/listings/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('item-images').upload(path, file);
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from('item-images').getPublicUrl(path);
+      setFormData(prev => ({ ...prev, thumbnail_url: publicUrl }));
+      toast({ title: "Thumbnail uploaded" });
+    } catch (err) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Could not upload thumbnail",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingThumb(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const computeRecurringDates = (baseDate: string, time: string): string[] => {
+    if (!baseDate || !time || recurringDays.length === 0) return [];
+    const dates: string[] = [];
+    const start = new Date(`${baseDate}T${time}`);
+    for (let w = 0; w < recurringWeeks; w++) {
+      for (const dow of recurringDays) {
+        const d = new Date(start);
+        // Advance to start of week (Sunday) then add dow
+        const weekStart = new Date(start);
+        weekStart.setDate(start.getDate() - start.getDay() + w * 7);
+        weekStart.setHours(start.getHours(), start.getMinutes(), 0, 0);
+        weekStart.setDate(weekStart.getDate() + dow);
+        if (weekStart.getTime() > Date.now()) dates.push(weekStart.toISOString());
+      }
+    }
+    return dates.sort();
   };
 
   const handleSubmit = async (asDraft: boolean) => {
@@ -72,47 +130,63 @@ const CreateListing = () => {
       return;
     }
 
+    if (recurring && !asDraft && (recurringDays.length === 0 || !formData.date || !formData.time)) {
+      toast({
+        title: "Recurring setup incomplete",
+        description: "Pick at least one weekday and a start date/time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
-      let scheduled_start = null;
-      if (formData.date && formData.time) {
-        scheduled_start = new Date(`${formData.date}T${formData.time}`).toISOString();
+      const scheduledDates: (string | null)[] = [];
+      if (recurring && !asDraft) {
+        const dates = computeRecurringDates(formData.date, formData.time);
+        if (dates.length === 0) {
+          throw new Error("No future occurrences found for the selected days.");
+        }
+        scheduledDates.push(...dates);
+      } else {
+        let scheduled_start: string | null = null;
+        if (formData.date && formData.time) {
+          scheduled_start = new Date(`${formData.date}T${formData.time}`).toISOString();
+        }
+        scheduledDates.push(scheduled_start);
       }
 
-      const { data, error } = await createListing({
-        type: listingType,
-        status: asDraft ? 'draft' : 'scheduled',
-        title: formData.title,
-        description: formData.description || null,
-        category_id: formData.category_id || null,
-        subcategory_id: formData.subcategory_id || null,
-        scheduled_start,
-        starting_price: null,
-      });
+      let firstCode: string | undefined;
+      for (const scheduled_start of scheduledDates) {
+        const { data, error } = await createListing({
+          type: listingType,
+          status: asDraft ? 'draft' : 'scheduled',
+          title: formData.title,
+          description: formData.description || null,
+          category_id: formData.category_id || null,
+          subcategory_id: formData.subcategory_id || null,
+          thumbnail_url: formData.thumbnail_url || null,
+          scheduled_start,
+          starting_price: null,
+        });
+        if (error) throw error;
+        if (!firstCode) firstCode = data?.listing_code;
 
-      if (error) throw error;
-
-      // Save listing items
-      if (data && selectedItems.length > 0) {
-        const listingItemsData = selectedItems.map(si => ({
-          listing_id: data.id,
-          item_id: si.item_id,
-          price: si.price,
-          quantity: si.quantity,
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('listing_items')
-          .insert(listingItemsData);
-
-        if (itemsError) {
-          console.error('Error saving listing items:', itemsError);
+        if (data && selectedItems.length > 0) {
+          const listingItemsData = selectedItems.map(si => ({
+            listing_id: data.id,
+            item_id: si.item_id,
+            price: si.price,
+            quantity: si.quantity,
+          }));
+          const { error: itemsError } = await supabase.from('listing_items').insert(listingItemsData);
+          if (itemsError) console.error('Error saving listing items:', itemsError);
         }
       }
 
       toast({
-        title: asDraft ? "Draft saved!" : "Listing scheduled!",
-        description: `Your ${listingType === 'live_sale' ? 'live sale' : 'auction'} ${data?.listing_code} has been ${asDraft ? 'saved as draft' : 'scheduled'}.`,
+        title: asDraft ? "Draft saved!" : (scheduledDates.length > 1 ? `${scheduledDates.length} listings scheduled!` : "Listing scheduled!"),
+        description: `Your ${listingType === 'live_sale' ? 'live sale' : 'auction'} ${firstCode ?? ''} has been ${asDraft ? 'saved as draft' : 'scheduled'}.`,
       });
 
       navigate('/dashboard');
@@ -127,10 +201,15 @@ const CreateListing = () => {
     }
   };
 
+  const toggleDay = (d: number) => {
+    setRecurringDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+  };
+
   return (
     <div className="max-w-3xl">
+      <BackButton />
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Create Listing</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Create Listing</h1>
         <p className="text-muted-foreground">Set up a new auction or sale for your products</p>
       </div>
 
@@ -304,13 +383,98 @@ const CreateListing = () => {
           {/* Thumbnail Upload */}
           <div className="space-y-2">
             <Label>Thumbnail (Optional)</Label>
-            <div className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center hover:border-border transition-colors">
-              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-2">
-                Drag and drop an image, or click to browse
-              </p>
-              <Button variant="outline" size="sm">Choose File</Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+              className="hidden"
+            />
+            {formData.thumbnail_url ? (
+              <div className="relative rounded-xl overflow-hidden border border-border/50 group">
+                <img src={formData.thumbnail_url} alt="Thumbnail" className="w-full h-48 object-cover" />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8"
+                  onClick={() => setFormData(prev => ({ ...prev, thumbnail_url: '' }))}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                onClick={() => !uploadingThumb && fileInputRef.current?.click()}
+                className="border-2 border-dashed border-border/50 rounded-xl p-8 text-center hover:border-border transition-colors cursor-pointer"
+              >
+                {uploadingThumb ? (
+                  <Loader2 className="w-8 h-8 text-muted-foreground mx-auto mb-3 animate-spin" />
+                ) : (
+                  <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                )}
+                <p className="text-sm text-muted-foreground mb-2">
+                  {uploadingThumb ? "Uploading..." : "Click to choose an image (max 5MB)"}
+                </p>
+                <Button variant="outline" size="sm" type="button" disabled={uploadingThumb}>
+                  Choose File
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Recurring schedule */}
+          <div className="p-4 rounded-xl bg-card/30 border border-border/30 space-y-3">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="recurring"
+                checked={recurring}
+                onCheckedChange={(v) => setRecurring(!!v)}
+              />
+              <Label htmlFor="recurring" className="flex items-center gap-2 cursor-pointer">
+                <Repeat className="w-4 h-4" />
+                Repeat weekly on selected days
+              </Label>
             </div>
+            {recurring && (
+              <div className="space-y-3 pl-1">
+                <div>
+                  <Label className="text-xs mb-2 block">Days of week</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {DAYS.map((label, idx) => {
+                      const active = recurringDays.includes(idx);
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => toggleDay(idx)}
+                          className={`h-9 min-w-[44px] px-3 rounded-lg text-sm font-medium transition-colors border ${
+                            active
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card/50 border-border/50 hover:border-border"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-1.5 max-w-[160px]">
+                  <Label htmlFor="weeks" className="text-xs">For how many weeks</Label>
+                  <Input
+                    id="weeks"
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={recurringWeeks}
+                    onChange={(e) => setRecurringWeeks(Math.max(1, Math.min(12, parseInt(e.target.value) || 1)))}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  One listing will be auto-created for each selected weekday over {recurringWeeks} week(s), using the start time below.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Date & Time */}
