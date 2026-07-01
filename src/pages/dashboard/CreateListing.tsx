@@ -1,18 +1,21 @@
 import { motion } from "framer-motion";
-import { Gavel, ShoppingBag, Upload, Calendar, Clock, Sparkles, Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Gavel, ShoppingBag, Upload, Calendar, Clock, Sparkles, Loader2, ArrowLeft, AlertTriangle, X, Repeat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useCategories } from "@/hooks/useCategories";
 import { useListings, ListingType } from "@/hooks/useListings";
 import { useItems } from "@/hooks/useItems";
+import { useShop } from "@/contexts/ShopContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ListingItemSelector, { SelectedListingItem } from "@/components/listings/ListingItemSelector";
+import BackButton from "@/components/BackButton";
 
 const CreateListing = () => {
   const { toast } = useToast();
@@ -20,19 +23,28 @@ const CreateListing = () => {
   const { categories, subcategories, getSubcategoriesByCategory, loading: categoriesLoading } = useCategories();
   const { createListing, liveListings } = useListings();
   const { items, loading: itemsLoading } = useItems();
+  const { currentShop } = useShop();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [listingType, setListingType] = useState<ListingType | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingThumb, setUploadingThumb] = useState(false);
   const [selectedItems, setSelectedItems] = useState<SelectedListingItem[]>([]);
   const [formData, setFormData] = useState({
     category_id: '',
     subcategory_id: '',
     title: '',
     description: '',
-    thumbnail: null as File | null,
+    thumbnail_url: '' as string,
     date: '',
     time: '',
   });
+
+  // Recurring
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const [recurring, setRecurring] = useState(false);
+  const [recurringDays, setRecurringDays] = useState<number[]>([]);
+  const [recurringWeeks, setRecurringWeeks] = useState(4);
 
   const hasActiveLive = liveListings.length > 0;
   const subcategoriesList = formData.category_id ? getSubcategoriesByCategory(formData.category_id) : [];
