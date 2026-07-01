@@ -63,6 +63,52 @@ const CreateListing = () => {
     );
   };
 
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentShop) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Thumbnail must be under 5MB.", variant: "destructive" });
+      return;
+    }
+    setUploadingThumb(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${currentShop.id}/listings/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('item-images').upload(path, file);
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from('item-images').getPublicUrl(path);
+      setFormData(prev => ({ ...prev, thumbnail_url: publicUrl }));
+      toast({ title: "Thumbnail uploaded" });
+    } catch (err) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Could not upload thumbnail",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingThumb(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const computeRecurringDates = (baseDate: string, time: string): string[] => {
+    if (!baseDate || !time || recurringDays.length === 0) return [];
+    const dates: string[] = [];
+    const start = new Date(`${baseDate}T${time}`);
+    for (let w = 0; w < recurringWeeks; w++) {
+      for (const dow of recurringDays) {
+        const d = new Date(start);
+        // Advance to start of week (Sunday) then add dow
+        const weekStart = new Date(start);
+        weekStart.setDate(start.getDate() - start.getDay() + w * 7);
+        weekStart.setHours(start.getHours(), start.getMinutes(), 0, 0);
+        weekStart.setDate(weekStart.getDate() + dow);
+        if (weekStart.getTime() > Date.now()) dates.push(weekStart.toISOString());
+      }
+    }
+    return dates.sort();
+  };
+
   const handleSubmit = async (asDraft: boolean) => {
     if (!listingType) return;
 
@@ -84,47 +130,63 @@ const CreateListing = () => {
       return;
     }
 
+    if (recurring && !asDraft && (recurringDays.length === 0 || !formData.date || !formData.time)) {
+      toast({
+        title: "Recurring setup incomplete",
+        description: "Pick at least one weekday and a start date/time.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
-      let scheduled_start = null;
-      if (formData.date && formData.time) {
-        scheduled_start = new Date(`${formData.date}T${formData.time}`).toISOString();
+      const scheduledDates: (string | null)[] = [];
+      if (recurring && !asDraft) {
+        const dates = computeRecurringDates(formData.date, formData.time);
+        if (dates.length === 0) {
+          throw new Error("No future occurrences found for the selected days.");
+        }
+        scheduledDates.push(...dates);
+      } else {
+        let scheduled_start: string | null = null;
+        if (formData.date && formData.time) {
+          scheduled_start = new Date(`${formData.date}T${formData.time}`).toISOString();
+        }
+        scheduledDates.push(scheduled_start);
       }
 
-      const { data, error } = await createListing({
-        type: listingType,
-        status: asDraft ? 'draft' : 'scheduled',
-        title: formData.title,
-        description: formData.description || null,
-        category_id: formData.category_id || null,
-        subcategory_id: formData.subcategory_id || null,
-        scheduled_start,
-        starting_price: null,
-      });
+      let firstCode: string | undefined;
+      for (const scheduled_start of scheduledDates) {
+        const { data, error } = await createListing({
+          type: listingType,
+          status: asDraft ? 'draft' : 'scheduled',
+          title: formData.title,
+          description: formData.description || null,
+          category_id: formData.category_id || null,
+          subcategory_id: formData.subcategory_id || null,
+          thumbnail_url: formData.thumbnail_url || null,
+          scheduled_start,
+          starting_price: null,
+        });
+        if (error) throw error;
+        if (!firstCode) firstCode = data?.listing_code;
 
-      if (error) throw error;
-
-      // Save listing items
-      if (data && selectedItems.length > 0) {
-        const listingItemsData = selectedItems.map(si => ({
-          listing_id: data.id,
-          item_id: si.item_id,
-          price: si.price,
-          quantity: si.quantity,
-        }));
-
-        const { error: itemsError } = await supabase
-          .from('listing_items')
-          .insert(listingItemsData);
-
-        if (itemsError) {
-          console.error('Error saving listing items:', itemsError);
+        if (data && selectedItems.length > 0) {
+          const listingItemsData = selectedItems.map(si => ({
+            listing_id: data.id,
+            item_id: si.item_id,
+            price: si.price,
+            quantity: si.quantity,
+          }));
+          const { error: itemsError } = await supabase.from('listing_items').insert(listingItemsData);
+          if (itemsError) console.error('Error saving listing items:', itemsError);
         }
       }
 
       toast({
-        title: asDraft ? "Draft saved!" : "Listing scheduled!",
-        description: `Your ${listingType === 'live_sale' ? 'live sale' : 'auction'} ${data?.listing_code} has been ${asDraft ? 'saved as draft' : 'scheduled'}.`,
+        title: asDraft ? "Draft saved!" : (scheduledDates.length > 1 ? `${scheduledDates.length} listings scheduled!` : "Listing scheduled!"),
+        description: `Your ${listingType === 'live_sale' ? 'live sale' : 'auction'} ${firstCode ?? ''} has been ${asDraft ? 'saved as draft' : 'scheduled'}.`,
       });
 
       navigate('/dashboard');
@@ -137,6 +199,10 @@ const CreateListing = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleDay = (d: number) => {
+    setRecurringDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
   };
 
   return (
