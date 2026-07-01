@@ -413,6 +413,41 @@ const Settings = () => {
           </div>
         )}
 
+        {activeTab === "appearance" && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium mb-1">Theme</h3>
+              <p className="text-sm text-muted-foreground mb-4">Choose how the dashboard looks on this device.</p>
+              <div className="grid grid-cols-2 gap-3 max-w-md">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    theme === "light"
+                      ? "border-primary bg-primary/5"
+                      : "border-border/50 bg-card/30 hover:border-border"
+                  }`}
+                >
+                  <Sun className="w-5 h-5 mb-2 text-secondary" />
+                  <p className="font-medium">Light</p>
+                  <p className="text-xs text-muted-foreground">Bright, minimal</p>
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    theme === "dark"
+                      ? "border-primary bg-primary/5"
+                      : "border-border/50 bg-card/30 hover:border-border"
+                  }`}
+                >
+                  <Moon className="w-5 h-5 mb-2 text-primary" />
+                  <p className="font-medium">Dark</p>
+                  <p className="text-xs text-muted-foreground">Premium, immersive</p>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === "notifications" && (
           <div className="space-y-4">
             {[
