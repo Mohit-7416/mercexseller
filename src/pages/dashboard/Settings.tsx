@@ -160,14 +160,15 @@ const Settings = () => {
 
   return (
     <div className="max-w-3xl">
+      <BackButton />
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Settings</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
         <p className="text-muted-foreground">Manage your account preferences</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-8 p-1 rounded-lg bg-card/50 border border-border/50 w-fit">
+      <div className="flex flex-wrap gap-2 mb-8 p-1 rounded-lg bg-card/50 border border-border/50 w-full sm:w-fit">
         {tabs.map((tab) => (
           <button
             key={tab.id}
