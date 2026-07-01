@@ -9,6 +9,7 @@ import { useListings } from "@/hooks/useListings";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import OrderDetailsDialog from "@/components/orders/OrderDetailsDialog";
+import BackButton from "@/components/BackButton";
 
 const statusColors: Record<OrderStatus, string> = {
   pending: "bg-secondary/10 text-secondary",
@@ -74,6 +75,7 @@ const Orders = () => {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
