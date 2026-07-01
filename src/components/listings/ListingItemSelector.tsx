@@ -91,15 +91,6 @@ const ListingItemSelector = ({
                   <p className="text-xs text-muted-foreground">₹{si.price}</p>
                 </div>
                 <div className="flex items-center gap-2 ml-3">
-                  <Input
-                    type="number"
-                    min={1}
-                    value={si.quantity}
-                    onChange={(e) =>
-                      onUpdateQuantity(si.item_id, parseInt(e.target.value) || 1)
-                    }
-                    className="w-16 h-8 text-center text-sm"
-                  />
                   <Button
                     variant="ghost"
                     size="icon"
