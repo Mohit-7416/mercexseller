@@ -170,9 +170,11 @@ const Overview = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingListing(listing)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
+                        {listing.status !== 'completed' && listing.status !== 'cancelled' && (
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingListing(listing)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewingListing(listing)}>
                           <Eye className="w-4 h-4" />
                         </Button>
