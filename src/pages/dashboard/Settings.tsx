@@ -455,6 +455,30 @@ const Settings = () => {
                 </button>
               </div>
             </div>
+
+            <div>
+              <h3 className="font-medium mb-1">Accent Color</h3>
+              <p className="text-sm text-muted-foreground mb-4">Sea green is the default. Pick a palette that fits your brand.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {ACCENT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setAccent(opt.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                      accent === opt.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border/50 bg-card/30 hover:border-border"
+                    }`}
+                  >
+                    <span
+                      className="w-8 h-8 rounded-full border border-border/40 shrink-0"
+                      style={{ background: opt.swatch }}
+                    />
+                    <span className="text-sm font-medium">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
