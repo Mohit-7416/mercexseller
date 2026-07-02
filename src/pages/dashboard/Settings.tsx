@@ -200,7 +200,7 @@ const Settings = () => {
         key={activeTab}
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
-        className="space-y-6"
+        className="rounded-2xl bg-card/40 border border-border/50 p-4 sm:p-6 space-y-6"
       >
         {activeTab === "personal" && (
           <div className="space-y-4">
