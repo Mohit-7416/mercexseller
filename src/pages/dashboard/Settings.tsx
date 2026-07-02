@@ -139,7 +139,15 @@ const Settings = () => {
     navigate("/");
   };
 
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, accent, setAccent } = useTheme();
+  const ACCENT_OPTIONS = [
+    { id: 'sea', label: 'Sea Green', swatch: 'hsl(165 45% 40%)' },
+    { id: 'brown', label: 'Warm Brown', swatch: 'hsl(32 65% 45%)' },
+    { id: 'ocean', label: 'Ocean Blue', swatch: 'hsl(200 70% 45%)' },
+    { id: 'sunset', label: 'Sunset', swatch: 'hsl(18 80% 55%)' },
+    { id: 'forest', label: 'Forest', swatch: 'hsl(140 40% 35%)' },
+    { id: 'plum', label: 'Plum', swatch: 'hsl(285 45% 45%)' },
+  ] as const;
 
   const tabs = [
     { id: "personal", label: "Personal Info", icon: User },
@@ -160,11 +168,13 @@ const Settings = () => {
 
   return (
     <div className="max-w-3xl">
-      <BackButton />
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-muted-foreground">Manage your account preferences</p>
+      <div className="mb-8 flex items-center gap-2">
+        <BackButton />
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-1">Settings</h1>
+          <p className="text-muted-foreground">Manage your account preferences</p>
+        </div>
       </div>
 
       {/* Tabs */}
