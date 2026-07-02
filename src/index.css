@@ -81,47 +81,56 @@
   }
 
   .light {
-    --background: 210 25% 98%;
-    --foreground: 220 25% 12%;
+    /* Warm cream base (#FFECC7) */
+    --background: 39 100% 89%;
+    --foreground: 25 40% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 25% 12%;
+    --card: 40 100% 96%;
+    --card-foreground: 25 40% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 12%;
+    --popover: 40 100% 97%;
+    --popover-foreground: 25 40% 15%;
 
     --primary: 165 45% 32%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 40 100% 97%;
 
     --secondary: 32 65% 42%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary-foreground: 40 100% 97%;
 
-    --muted: 220 15% 94%;
-    --muted-foreground: 220 12% 40%;
+    --muted: 38 60% 85%;
+    --muted-foreground: 28 25% 35%;
 
-    --accent: 165 40% 92%;
+    --accent: 165 40% 85%;
     --accent-foreground: 165 45% 22%;
 
     --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 88%;
-    --input: 220 15% 92%;
+    --border: 35 50% 78%;
+    --input: 40 80% 92%;
     --ring: 165 45% 40%;
 
-    --surface-1: 210 25% 96%;
-    --surface-2: 210 25% 94%;
-    --surface-3: 210 25% 92%;
+    --surface-1: 40 90% 93%;
+    --surface-2: 39 90% 91%;
+    --surface-3: 38 85% 88%;
 
-    --sidebar-background: 210 25% 96%;
-    --sidebar-foreground: 220 25% 15%;
+    --sidebar-background: 40 90% 92%;
+    --sidebar-foreground: 25 40% 18%;
     --sidebar-primary: 165 45% 32%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 25% 92%;
-    --sidebar-accent-foreground: 220 25% 15%;
-    --sidebar-border: 220 15% 88%;
+    --sidebar-primary-foreground: 40 100% 97%;
+    --sidebar-accent: 38 70% 86%;
+    --sidebar-accent-foreground: 25 40% 18%;
+    --sidebar-border: 35 50% 78%;
     --sidebar-ring: 165 45% 40%;
   }
+
+  /* Accent color presets — override primary + ring */
+  .accent-sea    { --primary: 165 45% 40%; --ring: 165 45% 40%; --sidebar-primary: 165 45% 40%; }
+  .accent-brown  { --primary: 32 65% 45%;  --ring: 32 65% 45%;  --sidebar-primary: 32 65% 45%; }
+  .accent-ocean  { --primary: 200 70% 45%; --ring: 200 70% 45%; --sidebar-primary: 200 70% 45%; }
+  .accent-sunset { --primary: 18 80% 55%;  --ring: 18 80% 55%;  --sidebar-primary: 18 80% 55%; }
+  .accent-forest { --primary: 140 40% 35%; --ring: 140 40% 35%; --sidebar-primary: 140 40% 35%; }
+  .accent-plum   { --primary: 285 45% 45%; --ring: 285 45% 45%; --sidebar-primary: 285 45% 45%; }
 }
 
 @layer base {
