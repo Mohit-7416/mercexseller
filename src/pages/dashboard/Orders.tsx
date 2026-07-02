@@ -1,11 +1,15 @@
 import { motion } from "framer-motion";
-import { Search, Filter, MessageCircle, Calendar, ChevronDown, Package, Loader2 } from "lucide-react";
+import { Search, Filter, MessageCircle, Calendar, ChevronDown, Package, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMemo, useState } from "react";
 import { useOrders, Order, OrderStatus } from "@/hooks/useOrders";
 import { useListings } from "@/hooks/useListings";
+import { useCategories } from "@/hooks/useCategories";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import OrderDetailsDialog from "@/components/orders/OrderDetailsDialog";
