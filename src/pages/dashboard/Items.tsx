@@ -333,12 +333,14 @@ const Items = () => {
 
   return (
     <div className="space-y-6">
-      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Items</h1>
-          <p className="text-sm md:text-base text-muted-foreground">Manage your inventory with variants and images</p>
+        <div className="flex items-center gap-2">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">Items</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Manage your inventory with variants and images</p>
+          </div>
         </div>
         <Button variant="hero" className="gap-2 w-full sm:w-auto" onClick={openAddWizard}>
           <Plus className="w-4 h-4" />
