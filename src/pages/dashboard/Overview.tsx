@@ -247,49 +247,53 @@ const Overview = () => {
             )}
           </motion.div>
 
-          {/* Completed / Past Listings — collapsed by default */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="space-y-3">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <h2 className="text-xl font-bold">Past Listings</h2>
-                <p className="text-sm text-muted-foreground">
-                  Last 10 completed shown by default. Use date range for older listings.
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setShowCompleted(s => !s)} className="gap-2">
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCompleted ? "rotate-180" : ""}`} />
-                {showCompleted ? "Hide" : "Show more"}
-              </Button>
-            </div>
-            {showCompleted && (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-3 items-end p-3 rounded-xl bg-card/20 border border-border/30">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">From</Label>
-                    <Input type="date" value={completedFrom} onChange={e => setCompletedFrom(e.target.value)} className="h-9" />
+          {/* Completed / Past Listings — only when more than 10 exist */}
+          {(() => {
+            const completedAll = listings.filter(l => COMPLETED_STATUSES.has(l.status));
+            if (completedAll.length <= 10) return null;
+            return (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="space-y-3">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <h2 className="text-xl font-bold">Past Listings</h2>
+                    <p className="text-sm text-muted-foreground">{completedAll.length} completed</p>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">To</Label>
-                    <Input type="date" value={completedTo} onChange={e => setCompletedTo(e.target.value)} className="h-9" />
-                  </div>
-                  {(completedFrom || completedTo) && (
-                    <Button variant="ghost" size="sm" onClick={() => { setCompletedFrom(""); setCompletedTo(""); }}>
-                      Reset
-                    </Button>
-                  )}
+                  <Button variant="outline" size="sm" onClick={() => setShowCompleted(s => !s)} className="gap-2">
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showCompleted ? "rotate-180" : ""}`} />
+                    {showCompleted ? "Hide" : "Show more"}
+                  </Button>
                 </div>
-                {completedVisible.length === 0 ? (
-                  <div className="p-8 rounded-xl bg-card/20 border border-border/30 text-center text-sm text-muted-foreground">
-                    No past listings in this range.
-                  </div>
-                ) : (
-                  <div className="grid gap-3">
-                    {completedVisible.map((listing, i) => renderListingRow(listing, i))}
+                {showCompleted && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-3 items-end p-3 rounded-xl bg-card/20 border border-border/30">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">From</Label>
+                        <Input type="date" value={completedFrom} onChange={e => setCompletedFrom(e.target.value)} className="h-9" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">To</Label>
+                        <Input type="date" value={completedTo} onChange={e => setCompletedTo(e.target.value)} className="h-9" />
+                      </div>
+                      {(completedFrom || completedTo) && (
+                        <Button variant="ghost" size="sm" onClick={() => { setCompletedFrom(""); setCompletedTo(""); }}>
+                          Reset
+                        </Button>
+                      )}
+                    </div>
+                    {completedVisible.length === 0 ? (
+                      <div className="p-8 rounded-xl bg-card/20 border border-border/30 text-center text-sm text-muted-foreground">
+                        No past listings in this range.
+                      </div>
+                    ) : (
+                      <div className="grid gap-3">
+                        {completedVisible.map((listing, i) => renderListingRow(listing, i))}
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
-          </motion.div>
+              </motion.div>
+            );
+          })()}
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[

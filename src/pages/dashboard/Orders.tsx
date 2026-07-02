@@ -1,11 +1,15 @@
 import { motion } from "framer-motion";
-import { Search, Filter, MessageCircle, Calendar, ChevronDown, Package, Loader2 } from "lucide-react";
+import { Search, Filter, MessageCircle, Calendar, ChevronDown, Package, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMemo, useState } from "react";
 import { useOrders, Order, OrderStatus } from "@/hooks/useOrders";
 import { useListings } from "@/hooks/useListings";
+import { useCategories } from "@/hooks/useCategories";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import OrderDetailsDialog from "@/components/orders/OrderDetailsDialog";
@@ -23,6 +27,7 @@ const statusColors: Record<OrderStatus, string> = {
 const Orders = () => {
   const { orders, loading, updateOrderStatus } = useOrders();
   const { listings } = useListings();
+  const { categories } = useCategories();
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -31,11 +36,71 @@ const Orders = () => {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
-  const filteredOrders = orders.filter(order => 
-    order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (order.buyer_name && order.buyer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (order.buyer_email && order.buyer_email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Advanced filters
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [fStatus, setFStatus] = useState<string>("all");
+  const [fType, setFType] = useState<string>("all"); // all | auction | sale
+  const [fCategory, setFCategory] = useState<string>("all");
+  const [fMinAmt, setFMinAmt] = useState("");
+  const [fMaxAmt, setFMaxAmt] = useState("");
+  const [fDateFrom, setFDateFrom] = useState("");
+  const [fDateTo, setFDateTo] = useState("");
+  const [fCustName, setFCustName] = useState("");
+  const [fCustEmail, setFCustEmail] = useState("");
+  const [fItem, setFItem] = useState("");
+
+  const resetFilters = () => {
+    setFStatus("all"); setFType("all"); setFCategory("all");
+    setFMinAmt(""); setFMaxAmt(""); setFDateFrom(""); setFDateTo("");
+    setFCustName(""); setFCustEmail(""); setFItem("");
+  };
+
+  const activeFilterCount =
+    (fStatus !== "all" ? 1 : 0) +
+    (fType !== "all" ? 1 : 0) +
+    (fCategory !== "all" ? 1 : 0) +
+    (fMinAmt ? 1 : 0) + (fMaxAmt ? 1 : 0) +
+    (fDateFrom ? 1 : 0) + (fDateTo ? 1 : 0) +
+    (fCustName ? 1 : 0) + (fCustEmail ? 1 : 0) +
+    (fItem ? 1 : 0);
+
+  const getListingInfo = (listingId: string | null) => {
+    if (!listingId) return null;
+    return listings.find(l => l.id === listingId);
+  };
+
+  const filteredOrders = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    const from = fDateFrom ? new Date(fDateFrom).getTime() : -Infinity;
+    const to = fDateTo ? new Date(fDateTo).getTime() + 86400000 : Infinity;
+    const min = fMinAmt ? parseFloat(fMinAmt) : -Infinity;
+    const max = fMaxAmt ? parseFloat(fMaxAmt) : Infinity;
+
+    return orders.filter(order => {
+      // free-text search
+      if (term) {
+        const hay = [order.order_number, order.buyer_name, order.buyer_email]
+          .filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      if (fStatus !== "all" && order.status !== fStatus) return false;
+      if (fCustName && !(order.buyer_name || "").toLowerCase().includes(fCustName.toLowerCase())) return false;
+      if (fCustEmail && !(order.buyer_email || "").toLowerCase().includes(fCustEmail.toLowerCase())) return false;
+      if (order.total < min || order.total > max) return false;
+      const t = new Date(order.created_at).getTime();
+      if (t < from || t > to) return false;
+
+      const listing = getListingInfo(order.listing_id);
+      if (fType !== "all") {
+        const isAuction = listing?.type === "auction";
+        if (fType === "auction" && !isAuction) return false;
+        if (fType === "sale" && isAuction) return false;
+      }
+      if (fCategory !== "all" && listing?.category_id !== fCategory) return false;
+      if (fItem && !(listing?.title || "").toLowerCase().includes(fItem.toLowerCase())) return false;
+      return true;
+    });
+  }, [orders, listings, searchTerm, fStatus, fType, fCategory, fMinAmt, fMaxAmt, fDateFrom, fDateTo, fCustName, fCustEmail, fItem]);
 
   const toggleSelect = (id: string) => {
     setSelectedOrders(prev => 
@@ -60,11 +125,6 @@ const Orders = () => {
     }
   };
 
-  const getListingInfo = (listingId: string | null) => {
-    if (!listingId) return null;
-    return listings.find(l => l.id === listingId);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -75,12 +135,14 @@ const Orders = () => {
 
   return (
     <div className="space-y-6">
-      <BackButton />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Orders</h1>
-          <p className="text-muted-foreground">Manage and track your customer orders</p>
+        <div className="flex items-center gap-2">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-1">Orders</h1>
+            <p className="text-muted-foreground">Manage and track your customer orders</p>
+          </div>
         </div>
         {selectedOrders.length > 0 && (
           <Button variant="outline" className="gap-2 w-full sm:w-auto">
@@ -94,25 +156,121 @@ const Orders = () => {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-wrap gap-4"
+        className="flex flex-wrap gap-3"
       >
-        <div className="relative flex-1 min-w-[200px] w-full">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by Order ID or Buyer..."
+            placeholder="Search by Order ID, name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 bg-card/50 border-border/50"
           />
         </div>
-        <Button variant="outline" className="gap-2">
-          <Filter className="w-4 h-4" />
-          Filters
-        </Button>
-        <Button variant="outline" className="gap-2">
-          <Calendar className="w-4 h-4" />
-          Date Range
-        </Button>
+
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Filter className="w-4 h-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-medium">
+                  {activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-[min(92vw,380px)] p-4 space-y-3 max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold text-sm">Filter orders</h4>
+              {activeFilterCount > 0 && (
+                <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={resetFilters}>
+                  <X className="w-3 h-3" /> Reset
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Status</Label>
+              <Select value={fStatus} onValueChange={setFStatus}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Order type</Label>
+              <Select value={fType} onValueChange={setFType}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Auction &amp; Sales</SelectItem>
+                  <SelectItem value="auction">Auction only</SelectItem>
+                  <SelectItem value="sale">Sales only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Item category</Label>
+              <Select value={fCategory} onValueChange={setFCategory}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {categories.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Min amount (₹)</Label>
+                <Input type="number" value={fMinAmt} onChange={e => setFMinAmt(e.target.value)} className="h-9" placeholder="0" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Max amount (₹)</Label>
+                <Input type="number" value={fMaxAmt} onChange={e => setFMaxAmt(e.target.value)} className="h-9" placeholder="Any" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">From</Label>
+                <Input type="date" value={fDateFrom} onChange={e => setFDateFrom(e.target.value)} className="h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">To</Label>
+                <Input type="date" value={fDateTo} onChange={e => setFDateTo(e.target.value)} className="h-9" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Customer name</Label>
+              <Input value={fCustName} onChange={e => setFCustName(e.target.value)} className="h-9" placeholder="e.g. Rahul" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Customer email</Label>
+              <Input value={fCustEmail} onChange={e => setFCustEmail(e.target.value)} className="h-9" placeholder="e.g. name@example.com" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Item / listing title</Label>
+              <Input value={fItem} onChange={e => setFItem(e.target.value)} className="h-9" placeholder="e.g. Silk saree" />
+            </div>
+
+            <Button className="w-full" onClick={() => setFilterOpen(false)}>Apply</Button>
+          </PopoverContent>
+        </Popover>
       </motion.div>
 
       {/* Orders Table or Empty State */}

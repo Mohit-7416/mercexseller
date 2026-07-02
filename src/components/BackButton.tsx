@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 
 interface Props {
   to?: string;
-  label?: string;
   className?: string;
+  ariaLabel?: string;
 }
 
-const BackButton = ({ to, label = "Back", className = "" }: Props) => {
+const BackButton = ({ to, className = "", ariaLabel = "Go back" }: Props) => {
   const navigate = useNavigate();
   const handleClick = () => {
     if (to) navigate(to);
@@ -17,12 +17,12 @@ const BackButton = ({ to, label = "Back", className = "" }: Props) => {
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size="icon"
       onClick={handleClick}
-      className={`gap-1.5 -ml-2 mb-2 text-muted-foreground hover:text-foreground ${className}`}
+      aria-label={ariaLabel}
+      className={`h-9 w-9 rounded-full hover:bg-card/60 shrink-0 ${className}`}
     >
-      <ArrowLeft className="w-4 h-4" />
-      {label}
+      <ArrowLeft className="w-5 h-5" />
     </Button>
   );
 };

@@ -139,7 +139,15 @@ const Settings = () => {
     navigate("/");
   };
 
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, accent, setAccent } = useTheme();
+  const ACCENT_OPTIONS = [
+    { id: 'sea', label: 'Sea Green', swatch: 'hsl(165 45% 40%)' },
+    { id: 'brown', label: 'Warm Brown', swatch: 'hsl(32 65% 45%)' },
+    { id: 'ocean', label: 'Ocean Blue', swatch: 'hsl(200 70% 45%)' },
+    { id: 'sunset', label: 'Sunset', swatch: 'hsl(18 80% 55%)' },
+    { id: 'forest', label: 'Forest', swatch: 'hsl(140 40% 35%)' },
+    { id: 'plum', label: 'Plum', swatch: 'hsl(285 45% 45%)' },
+  ] as const;
 
   const tabs = [
     { id: "personal", label: "Personal Info", icon: User },
@@ -160,11 +168,13 @@ const Settings = () => {
 
   return (
     <div className="max-w-3xl">
-      <BackButton />
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-muted-foreground">Manage your account preferences</p>
+      <div className="mb-8 flex items-center gap-2">
+        <BackButton />
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-1">Settings</h1>
+          <p className="text-muted-foreground">Manage your account preferences</p>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -190,7 +200,7 @@ const Settings = () => {
         key={activeTab}
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
-        className="space-y-6"
+        className="rounded-2xl bg-card/40 border border-border/50 p-4 sm:p-6 space-y-6"
       >
         {activeTab === "personal" && (
           <div className="space-y-4">
@@ -443,6 +453,30 @@ const Settings = () => {
                   <p className="font-medium">Dark</p>
                   <p className="text-xs text-muted-foreground">Premium, immersive</p>
                 </button>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-1">Accent Color</h3>
+              <p className="text-sm text-muted-foreground mb-4">Sea green is the default. Pick a palette that fits your brand.</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {ACCENT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setAccent(opt.id)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                      accent === opt.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border/50 bg-card/30 hover:border-border"
+                    }`}
+                  >
+                    <span
+                      className="w-8 h-8 rounded-full border border-border/40 shrink-0"
+                      style={{ background: opt.swatch }}
+                    />
+                    <span className="text-sm font-medium">{opt.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
