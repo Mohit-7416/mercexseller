@@ -91,12 +91,14 @@ const Analysis = () => {
 
   return (
     <div className="space-y-8">
-      <BackButton />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Analysis</h1>
-          <p className="text-muted-foreground">Track your business performance</p>
+        <div className="flex items-center gap-2">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Analysis</h1>
+            <p className="text-muted-foreground">Track your business performance</p>
+          </div>
         </div>
 
         {/* View Type Selector */}
