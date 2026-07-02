@@ -207,10 +207,12 @@ const CreateListing = () => {
 
   return (
     <div className="max-w-3xl">
-      <BackButton />
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Create Listing</h1>
-        <p className="text-muted-foreground">Set up a new auction or sale for your products</p>
+      <div className="mb-8 flex items-center gap-2">
+        <BackButton />
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-1">Create Listing</h1>
+          <p className="text-muted-foreground">Set up a new auction or sale for your products</p>
+        </div>
       </div>
 
       {/* Active live warning */}
