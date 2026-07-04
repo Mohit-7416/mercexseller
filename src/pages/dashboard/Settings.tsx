@@ -377,58 +377,59 @@ const Settings = () => {
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="shopCity">City</Label>
-                    <Input
-                      id="shopCity"
-                      value={shopData.city}
-                      onChange={(e) => {
-                        setShopData(prev => ({ ...prev, city: e.target.value }));
+                    <Label>State</Label>
+                    <Select
+                      value={shopData.state || undefined}
+                      onValueChange={(v) => {
+                        setShopData(prev => ({ ...prev, state: v, city: "", postal_code: "", country: "India" }));
                         setHasChanges(true);
                       }}
-                      placeholder="Enter city"
-                      className="bg-card/50 border-border/50"
-                    />
+                    >
+                      <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder="Select state" /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {indiaStates.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="shopState">State</Label>
-                    <Input
-                      id="shopState"
-                      value={shopData.state}
-                      onChange={(e) => {
-                        setShopData(prev => ({ ...prev, state: e.target.value }));
-                        setHasChanges(true);
-                      }}
-                      placeholder="Enter state"
-                      className="bg-card/50 border-border/50"
-                    />
+                    <Label>City</Label>
+                    <Select
+                      value={shopData.city || undefined}
+                      onValueChange={(v) => { setShopData(prev => ({ ...prev, city: v, postal_code: "" })); setHasChanges(true); }}
+                      disabled={!shopData.state}
+                    >
+                      <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder={shopData.state ? "Select city" : "Select state first"} /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {shopCities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="shopCountry">Country</Label>
-                    <Input
-                      id="shopCountry"
-                      value={shopData.country}
-                      onChange={(e) => {
-                        setShopData(prev => ({ ...prev, country: e.target.value }));
-                        setHasChanges(true);
-                      }}
-                      placeholder="Enter country"
-                      className="bg-card/50 border-border/50"
-                    />
+                    <Input id="shopCountry" value={shopData.country || "India"} disabled className="bg-card/50 border-border/50 opacity-70" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="shopPostalCode">Postal Code</Label>
-                    <Input
-                      id="shopPostalCode"
-                      value={shopData.postal_code}
-                      onChange={(e) => {
-                        setShopData(prev => ({ ...prev, postal_code: e.target.value }));
-                        setHasChanges(true);
-                      }}
-                      placeholder="Enter postal code"
-                      className="bg-card/50 border-border/50"
-                    />
+                    <Label>Postal Code</Label>
+                    {shopPins.length > 0 ? (
+                      <Select
+                        value={shopData.postal_code || undefined}
+                        onValueChange={(v) => { setShopData(prev => ({ ...prev, postal_code: v })); setHasChanges(true); }}
+                      >
+                        <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder="Select pincode" /></SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {shopPins.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={shopData.postal_code}
+                        onChange={(e) => { setShopData(prev => ({ ...prev, postal_code: e.target.value })); setHasChanges(true); }}
+                        placeholder={shopData.city ? "Enter postal code" : "Select city first"}
+                        className="bg-card/50 border-border/50"
+                      />
+                    )}
                   </div>
                 </div>
               </>
