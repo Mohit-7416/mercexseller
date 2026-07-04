@@ -267,58 +267,62 @@ const Settings = () => {
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={personalData.city}
-                  onChange={(e) => {
-                    setPersonalData(prev => ({ ...prev, city: e.target.value }));
+                <Label>State</Label>
+                <Select
+                  value={personalData.state || undefined}
+                  onValueChange={(v) => {
+                    setPersonalData(prev => ({ ...prev, state: v, city: "", postal_code: "", country: "India" }));
                     setHasChanges(true);
                   }}
-                  placeholder="Enter your city"
-                  className="bg-card/50 border-border/50"
-                />
+                >
+                  <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder="Select state" /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {indiaStates.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  value={personalData.state}
-                  onChange={(e) => {
-                    setPersonalData(prev => ({ ...prev, state: e.target.value }));
+                <Label>City</Label>
+                <Select
+                  value={personalData.city || undefined}
+                  onValueChange={(v) => {
+                    setPersonalData(prev => ({ ...prev, city: v, postal_code: "" }));
                     setHasChanges(true);
                   }}
-                  placeholder="Enter your state"
-                  className="bg-card/50 border-border/50"
-                />
+                  disabled={!personalData.state}
+                >
+                  <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder={personalData.state ? "Select city" : "Select state first"} /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {personalCities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={personalData.country}
-                  onChange={(e) => {
-                    setPersonalData(prev => ({ ...prev, country: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  placeholder="Enter your country"
-                  className="bg-card/50 border-border/50"
-                />
+                <Input id="country" value={personalData.country || "India"} disabled className="bg-card/50 border-border/50 opacity-70" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="postal_code">Postal Code</Label>
-                <Input
-                  id="postal_code"
-                  value={personalData.postal_code}
-                  onChange={(e) => {
-                    setPersonalData(prev => ({ ...prev, postal_code: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  placeholder="Enter your postal code"
-                  className="bg-card/50 border-border/50"
-                />
+                <Label>Postal Code</Label>
+                {personalPins.length > 0 ? (
+                  <Select
+                    value={personalData.postal_code || undefined}
+                    onValueChange={(v) => { setPersonalData(prev => ({ ...prev, postal_code: v })); setHasChanges(true); }}
+                  >
+                    <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder="Select pincode" /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {personalPins.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={personalData.postal_code}
+                    onChange={(e) => { setPersonalData(prev => ({ ...prev, postal_code: e.target.value })); setHasChanges(true); }}
+                    placeholder={personalData.city ? "Enter postal code" : "Select city first"}
+                    className="bg-card/50 border-border/50"
+                  />
+                )}
               </div>
             </div>
           </div>
