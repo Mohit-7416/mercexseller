@@ -63,6 +63,12 @@ const CreateListing = () => {
     );
   };
 
+  const handleUpdateMinBidIncrement = (itemId: string, amount: number) => {
+    setSelectedItems(prev =>
+      prev.map(i => (i.item_id === itemId ? { ...i, min_bid_increment: amount } : i))
+    );
+  };
+
   const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentShop) return;
@@ -178,6 +184,7 @@ const CreateListing = () => {
             item_id: si.item_id,
             price: si.price,
             quantity: si.quantity,
+            min_bid_increment: listingType === 'auction' ? (si.min_bid_increment ?? 0) : 0,
           }));
           const { error: itemsError } = await supabase.from('listing_items').insert(listingItemsData);
           if (itemsError) console.error('Error saving listing items:', itemsError);
@@ -380,6 +387,8 @@ const CreateListing = () => {
             onAddItem={handleAddItem}
             onRemoveItem={handleRemoveItem}
             onUpdateQuantity={handleUpdateQuantity}
+            onUpdateMinBidIncrement={handleUpdateMinBidIncrement}
+            isAuction={listingType === 'auction'}
           />
 
           {/* Thumbnail Upload */}

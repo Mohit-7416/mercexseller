@@ -13,6 +13,7 @@ export interface SelectedListingItem {
   name: string;
   price: number;
   quantity: number;
+  min_bid_increment?: number;
 }
 
 interface ListingItemSelectorProps {
@@ -23,6 +24,8 @@ interface ListingItemSelectorProps {
   onAddItem: (item: SelectedListingItem) => void;
   onRemoveItem: (itemId: string) => void;
   onUpdateQuantity: (itemId: string, quantity: number) => void;
+  onUpdateMinBidIncrement?: (itemId: string, amount: number) => void;
+  isAuction?: boolean;
 }
 
 const ListingItemSelector = ({
@@ -33,6 +36,8 @@ const ListingItemSelector = ({
   onAddItem,
   onRemoveItem,
   onUpdateQuantity,
+  onUpdateMinBidIncrement,
+  isAuction = false,
 }: ListingItemSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -84,13 +89,13 @@ const ListingItemSelector = ({
             {selectedItems.map((si) => (
               <div
                 key={si.item_id}
-                className="flex items-center justify-between p-3 rounded-lg bg-card/50 border border-border/50"
+                className="p-3 rounded-lg bg-card/50 border border-border/50 space-y-2"
               >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{si.name}</p>
-                  <p className="text-xs text-muted-foreground">₹{si.price}</p>
-                </div>
-                <div className="flex items-center gap-2 ml-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{si.name}</p>
+                    <p className="text-xs text-muted-foreground">₹{si.price}</p>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -100,6 +105,23 @@ const ListingItemSelector = ({
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
+                {isAuction && (
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`inc-${si.item_id}`} className="text-xs text-muted-foreground whitespace-nowrap">
+                      Min bid increment ₹
+                    </Label>
+                    <Input
+                      id={`inc-${si.item_id}`}
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={si.min_bid_increment ?? 0}
+                      onChange={(e) => onUpdateMinBidIncrement?.(si.item_id, Number(e.target.value) || 0)}
+                      className="h-8 w-28 bg-card/50 border-border/50 text-sm"
+                      placeholder="0"
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

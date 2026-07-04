@@ -124,13 +124,15 @@
     --sidebar-ring: 165 45% 40%;
   }
 
-  /* Accent color presets — override primary + ring */
-  .accent-sea    { --primary: 165 45% 40%; --ring: 165 45% 40%; --sidebar-primary: 165 45% 40%; }
-  .accent-brown  { --primary: 32 65% 45%;  --ring: 32 65% 45%;  --sidebar-primary: 32 65% 45%; }
-  .accent-ocean  { --primary: 200 70% 45%; --ring: 200 70% 45%; --sidebar-primary: 200 70% 45%; }
-  .accent-sunset { --primary: 18 80% 55%;  --ring: 18 80% 55%;  --sidebar-primary: 18 80% 55%; }
-  .accent-forest { --primary: 140 40% 35%; --ring: 140 40% 35%; --sidebar-primary: 140 40% 35%; }
-  .accent-plum   { --primary: 285 45% 45%; --ring: 285 45% 45%; --sidebar-primary: 285 45% 45%; }
+  /* Accent color presets — override primary + ring + sea-green tokens so
+     every component that references either changes with the accent. Higher
+     specificity (html.accent-*) ensures they win over .dark / .light. */
+  html.accent-sea    { --primary: 165 45% 40%; --ring: 165 45% 40%; --sidebar-primary: 165 45% 40%; --sea-green: 165 45% 40%; --sea-green-light: 165 45% 50%; --sea-green-dark: 165 45% 30%; }
+  html.accent-brown  { --primary: 32 65% 45%;  --ring: 32 65% 45%;  --sidebar-primary: 32 65% 45%;  --sea-green: 32 65% 45%;  --sea-green-light: 32 65% 55%;  --sea-green-dark: 32 65% 35%; }
+  html.accent-ocean  { --primary: 200 70% 45%; --ring: 200 70% 45%; --sidebar-primary: 200 70% 45%; --sea-green: 200 70% 45%; --sea-green-light: 200 70% 55%; --sea-green-dark: 200 70% 35%; }
+  html.accent-sunset { --primary: 18 80% 55%;  --ring: 18 80% 55%;  --sidebar-primary: 18 80% 55%;  --sea-green: 18 80% 55%;  --sea-green-light: 18 80% 65%;  --sea-green-dark: 18 80% 45%; }
+  html.accent-forest { --primary: 140 40% 35%; --ring: 140 40% 35%; --sidebar-primary: 140 40% 35%; --sea-green: 140 40% 35%; --sea-green-light: 140 40% 45%; --sea-green-dark: 140 40% 25%; }
+  html.accent-plum   { --primary: 285 45% 45%; --ring: 285 45% 45%; --sidebar-primary: 285 45% 45%; --sea-green: 285 45% 45%; --sea-green-light: 285 45% 55%; --sea-green-dark: 285 45% 35%; }
 }
 
 @layer base {

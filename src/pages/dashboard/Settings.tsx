@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +12,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useShop } from "@/contexts/ShopContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useIndiaStates, useIndiaCities, useIndiaPincodes } from "@/hooks/useIndiaLocations";
 import BackButton from "@/components/BackButton";
 
 const Settings = () => {
@@ -158,6 +160,13 @@ const Settings = () => {
 
   const loading = profileLoading || shopLoading;
 
+  // India location lookups
+  const { states: indiaStates } = useIndiaStates();
+  const { cities: personalCities } = useIndiaCities(personalData.state);
+  const { pincodes: personalPins } = useIndiaPincodes(personalData.city);
+  const { cities: shopCities } = useIndiaCities(shopData.state);
+  const { pincodes: shopPins } = useIndiaPincodes(shopData.city);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -167,13 +176,13 @@ const Settings = () => {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8 flex items-center gap-2">
+      <div className="mb-4 md:mb-8 flex items-center gap-2">
         <BackButton />
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-1">Settings</h1>
-          <p className="text-muted-foreground">Manage your account preferences</p>
+          <h1 className="text-xl md:text-3xl font-bold mb-0.5">Settings</h1>
+          <p className="text-sm text-muted-foreground">Manage your account preferences</p>
         </div>
       </div>
 
@@ -258,58 +267,62 @@ const Settings = () => {
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={personalData.city}
-                  onChange={(e) => {
-                    setPersonalData(prev => ({ ...prev, city: e.target.value }));
+                <Label>State</Label>
+                <Select
+                  value={personalData.state || undefined}
+                  onValueChange={(v) => {
+                    setPersonalData(prev => ({ ...prev, state: v, city: "", postal_code: "", country: "India" }));
                     setHasChanges(true);
                   }}
-                  placeholder="Enter your city"
-                  className="bg-card/50 border-border/50"
-                />
+                >
+                  <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder="Select state" /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {indiaStates.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  value={personalData.state}
-                  onChange={(e) => {
-                    setPersonalData(prev => ({ ...prev, state: e.target.value }));
+                <Label>City</Label>
+                <Select
+                  value={personalData.city || undefined}
+                  onValueChange={(v) => {
+                    setPersonalData(prev => ({ ...prev, city: v, postal_code: "" }));
                     setHasChanges(true);
                   }}
-                  placeholder="Enter your state"
-                  className="bg-card/50 border-border/50"
-                />
+                  disabled={!personalData.state}
+                >
+                  <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder={personalData.state ? "Select city" : "Select state first"} /></SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {personalCities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={personalData.country}
-                  onChange={(e) => {
-                    setPersonalData(prev => ({ ...prev, country: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  placeholder="Enter your country"
-                  className="bg-card/50 border-border/50"
-                />
+                <Input id="country" value={personalData.country || "India"} disabled className="bg-card/50 border-border/50 opacity-70" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="postal_code">Postal Code</Label>
-                <Input
-                  id="postal_code"
-                  value={personalData.postal_code}
-                  onChange={(e) => {
-                    setPersonalData(prev => ({ ...prev, postal_code: e.target.value }));
-                    setHasChanges(true);
-                  }}
-                  placeholder="Enter your postal code"
-                  className="bg-card/50 border-border/50"
-                />
+                <Label>Postal Code</Label>
+                {personalPins.length > 0 ? (
+                  <Select
+                    value={personalData.postal_code || undefined}
+                    onValueChange={(v) => { setPersonalData(prev => ({ ...prev, postal_code: v })); setHasChanges(true); }}
+                  >
+                    <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder="Select pincode" /></SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {personalPins.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={personalData.postal_code}
+                    onChange={(e) => { setPersonalData(prev => ({ ...prev, postal_code: e.target.value })); setHasChanges(true); }}
+                    placeholder={personalData.city ? "Enter postal code" : "Select city first"}
+                    className="bg-card/50 border-border/50"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -364,58 +377,59 @@ const Settings = () => {
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="shopCity">City</Label>
-                    <Input
-                      id="shopCity"
-                      value={shopData.city}
-                      onChange={(e) => {
-                        setShopData(prev => ({ ...prev, city: e.target.value }));
+                    <Label>State</Label>
+                    <Select
+                      value={shopData.state || undefined}
+                      onValueChange={(v) => {
+                        setShopData(prev => ({ ...prev, state: v, city: "", postal_code: "", country: "India" }));
                         setHasChanges(true);
                       }}
-                      placeholder="Enter city"
-                      className="bg-card/50 border-border/50"
-                    />
+                    >
+                      <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder="Select state" /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {indiaStates.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="shopState">State</Label>
-                    <Input
-                      id="shopState"
-                      value={shopData.state}
-                      onChange={(e) => {
-                        setShopData(prev => ({ ...prev, state: e.target.value }));
-                        setHasChanges(true);
-                      }}
-                      placeholder="Enter state"
-                      className="bg-card/50 border-border/50"
-                    />
+                    <Label>City</Label>
+                    <Select
+                      value={shopData.city || undefined}
+                      onValueChange={(v) => { setShopData(prev => ({ ...prev, city: v, postal_code: "" })); setHasChanges(true); }}
+                      disabled={!shopData.state}
+                    >
+                      <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder={shopData.state ? "Select city" : "Select state first"} /></SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {shopCities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="shopCountry">Country</Label>
-                    <Input
-                      id="shopCountry"
-                      value={shopData.country}
-                      onChange={(e) => {
-                        setShopData(prev => ({ ...prev, country: e.target.value }));
-                        setHasChanges(true);
-                      }}
-                      placeholder="Enter country"
-                      className="bg-card/50 border-border/50"
-                    />
+                    <Input id="shopCountry" value={shopData.country || "India"} disabled className="bg-card/50 border-border/50 opacity-70" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="shopPostalCode">Postal Code</Label>
-                    <Input
-                      id="shopPostalCode"
-                      value={shopData.postal_code}
-                      onChange={(e) => {
-                        setShopData(prev => ({ ...prev, postal_code: e.target.value }));
-                        setHasChanges(true);
-                      }}
-                      placeholder="Enter postal code"
-                      className="bg-card/50 border-border/50"
-                    />
+                    <Label>Postal Code</Label>
+                    {shopPins.length > 0 ? (
+                      <Select
+                        value={shopData.postal_code || undefined}
+                        onValueChange={(v) => { setShopData(prev => ({ ...prev, postal_code: v })); setHasChanges(true); }}
+                      >
+                        <SelectTrigger className="bg-card/50 border-border/50"><SelectValue placeholder="Select pincode" /></SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {shopPins.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={shopData.postal_code}
+                        onChange={(e) => { setShopData(prev => ({ ...prev, postal_code: e.target.value })); setHasChanges(true); }}
+                        placeholder={shopData.city ? "Enter postal code" : "Select city first"}
+                        className="bg-card/50 border-border/50"
+                      />
+                    )}
                   </div>
                 </div>
               </>

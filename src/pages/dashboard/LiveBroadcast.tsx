@@ -43,6 +43,7 @@ const LiveBroadcast = () => {
   const [text, setText] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [topBid, setTopBid] = useState<number>(0);
+  const [itemBids, setItemBids] = useState<Record<string, number>>({});
 
   // Dialogs
   const [showItems, setShowItems] = useState(false);
@@ -133,8 +134,12 @@ const LiveBroadcast = () => {
       })
       .on("broadcast", { event: "bid" }, ({ payload }) => {
         const amt = Number((payload as any)?.amount || 0);
+        const itemId = (payload as any)?.item_id as string | undefined;
         if (amt > 0) {
           setTopBid(prev => Math.max(prev, amt));
+          if (itemId) {
+            setItemBids(prev => ({ ...prev, [itemId]: Math.max(prev[itemId] || 0, amt) }));
+          }
           setChat(c => [...c, {
             id: crypto.randomUUID(),
             user: (payload as any)?.user || "Bidder",
@@ -362,23 +367,36 @@ const LiveBroadcast = () => {
             {linkedItems.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6">No items linked to this session.</p>
             )}
-            {linkedItems.map((li: any) => (
-              <div key={li.id} className="flex items-center gap-3 p-2 rounded-lg border">
-                <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
-                  <Package className="w-5 h-5" />
+            {linkedItems.map((li: any) => {
+              const startPrice = Number(li.price ?? li.starting_price ?? 0);
+              const currentBid = itemBids[li.item_id] ?? 0;
+              const displayBid = Math.max(currentBid, startPrice);
+              const inc = Number(li.min_bid_increment ?? 0);
+              return (
+                <div key={li.id} className="flex items-center gap-3 p-2 rounded-lg border">
+                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
+                    <Package className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{li.items?.name || "Item"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {li.items?.sku && `SKU: ${li.items.sku}`}
+                      {isAuction && inc > 0 && ` · Min +₹${inc.toLocaleString()}`}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {isAuction ? (
+                      <>
+                        <p className="text-[10px] text-muted-foreground">{currentBid > 0 ? "Current Bid" : "Starting"}</p>
+                        <p className="text-sm font-bold text-primary">₹{displayBid.toLocaleString()}</p>
+                      </>
+                    ) : (
+                      startPrice > 0 && <span className="text-sm font-semibold">₹{startPrice.toLocaleString()}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{li.items?.name || "Item"}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {li.items?.sku && `SKU: ${li.items.sku}`}
-                    {li.quantity != null && ` · Qty: ${li.quantity}`}
-                  </p>
-                </div>
-                {li.starting_price != null && (
-                  <span className="text-sm font-semibold">₹{Number(li.starting_price).toLocaleString()}</span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
