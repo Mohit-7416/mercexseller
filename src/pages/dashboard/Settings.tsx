@@ -160,6 +160,13 @@ const Settings = () => {
 
   const loading = profileLoading || shopLoading;
 
+  // India location lookups
+  const { states: indiaStates } = useIndiaStates();
+  const { cities: personalCities } = useIndiaCities(personalData.state);
+  const { pincodes: personalPins } = useIndiaPincodes(personalData.city);
+  const { cities: shopCities } = useIndiaCities(shopData.state);
+  const { pincodes: shopPins } = useIndiaPincodes(shopData.city);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
