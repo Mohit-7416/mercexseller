@@ -1,0 +1,1 @@
+ALTER TABLE public.listing_items ADD COLUMN IF NOT EXISTS min_bid_increment numeric NOT NULL DEFAULT 0;

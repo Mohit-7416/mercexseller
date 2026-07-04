@@ -155,6 +155,7 @@ export type Database = {
           id: string
           item_id: string
           listing_id: string
+          min_bid_increment: number
           price: number
           quantity: number
         }
@@ -163,6 +164,7 @@ export type Database = {
           id?: string
           item_id: string
           listing_id: string
+          min_bid_increment?: number
           price: number
           quantity?: number
         }
@@ -171,6 +173,7 @@ export type Database = {
           id?: string
           item_id?: string
           listing_id?: string
+          min_bid_increment?: number
           price?: number
           quantity?: number
         }
