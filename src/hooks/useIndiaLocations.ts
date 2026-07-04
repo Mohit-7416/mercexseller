@@ -75,7 +75,7 @@ export const useIndiaPincodes = (city: string) => {
       .then(j => {
         if (!alive) return;
         const rows = Array.isArray(j) ? j[0]?.PostOffice || [] : [];
-        const uniq = Array.from(new Set(rows.map((p: any) => String(p.Pincode)).filter(Boolean)));
+        const uniq: string[] = Array.from(new Set(rows.map((p: any) => String(p.Pincode)).filter(Boolean)));
         setPincodes(uniq.sort());
       })
       .catch(() => alive && setPincodes([]))
