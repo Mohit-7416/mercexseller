@@ -43,6 +43,7 @@ const LiveBroadcast = () => {
   const [text, setText] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [topBid, setTopBid] = useState<number>(0);
+  const [itemBids, setItemBids] = useState<Record<string, number>>({});
 
   // Dialogs
   const [showItems, setShowItems] = useState(false);
@@ -133,8 +134,12 @@ const LiveBroadcast = () => {
       })
       .on("broadcast", { event: "bid" }, ({ payload }) => {
         const amt = Number((payload as any)?.amount || 0);
+        const itemId = (payload as any)?.item_id as string | undefined;
         if (amt > 0) {
           setTopBid(prev => Math.max(prev, amt));
+          if (itemId) {
+            setItemBids(prev => ({ ...prev, [itemId]: Math.max(prev[itemId] || 0, amt) }));
+          }
           setChat(c => [...c, {
             id: crypto.randomUUID(),
             user: (payload as any)?.user || "Bidder",
