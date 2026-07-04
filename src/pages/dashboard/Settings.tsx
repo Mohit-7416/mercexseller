@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +12,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useShop } from "@/contexts/ShopContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useIndiaStates, useIndiaCities, useIndiaPincodes } from "@/hooks/useIndiaLocations";
 import BackButton from "@/components/BackButton";
 
 const Settings = () => {
@@ -167,13 +169,13 @@ const Settings = () => {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8 flex items-center gap-2">
+      <div className="mb-4 md:mb-8 flex items-center gap-2">
         <BackButton />
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-1">Settings</h1>
-          <p className="text-muted-foreground">Manage your account preferences</p>
+          <h1 className="text-xl md:text-3xl font-bold mb-0.5">Settings</h1>
+          <p className="text-sm text-muted-foreground">Manage your account preferences</p>
         </div>
       </div>
 
