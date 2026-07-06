@@ -30,6 +30,8 @@ export interface WizardFormData {
   cost_price: string;
   unitOfMeasure: string;
   isActive: boolean;
+  // Listing type (sale = has quantity; auction = single unit)
+  listingType: 'sale' | 'auction';
   // Parameters
   parameters: Parameter[];
   // Variant Config
