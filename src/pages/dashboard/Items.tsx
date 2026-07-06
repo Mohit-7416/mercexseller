@@ -80,6 +80,9 @@ const Items = () => {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
+      const itemType = (item.dimensions as any)?.listing_type === 'auction' ? 'auction' : 'sale';
+      if (itemType !== activeTab) return false;
+
       const matchesSearch =
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -104,7 +107,7 @@ const Items = () => {
 
       return true;
     });
-  }, [items, searchTerm, filterCategory, filterSubcategory, filterMinPrice, filterMaxPrice, filterDateFrom, filterDateTo]);
+  }, [items, searchTerm, filterCategory, filterSubcategory, filterMinPrice, filterMaxPrice, filterDateFrom, filterDateTo, activeTab]);
 
   const resetFilters = () => {
     setFilterCategory("all");
