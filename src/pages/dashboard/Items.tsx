@@ -535,6 +535,7 @@ const Items = () => {
           getSubcategoriesByCategory={getSubcategoriesByCategory}
           shopId={currentShop.id}
           saving={saving}
+          listingType={wizardListingType}
         />
       )}
 
