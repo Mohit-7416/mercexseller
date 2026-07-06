@@ -89,6 +89,7 @@ const ItemWizard = ({
     cost_price: '',
     unitOfMeasure: 'pieces',
     isActive: true,
+    listingType,
     parameters: [],
     hasVariants: false,
     variants: [],
