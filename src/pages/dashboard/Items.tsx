@@ -141,11 +141,14 @@ const Items = () => {
 
   const openAddWizard = () => {
     setSelectedItem(null);
+    setWizardListingType(activeTab);
     setShowWizard(true);
   };
 
   const openEditWizard = (item: Item) => {
     setSelectedItem(item);
+    const t = (item.dimensions as any)?.listing_type === 'auction' ? 'auction' : 'sale';
+    setWizardListingType(t);
     setShowWizard(true);
   };
 
