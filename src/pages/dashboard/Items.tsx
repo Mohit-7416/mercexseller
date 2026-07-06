@@ -352,8 +352,25 @@ const Items = () => {
         </div>
         <Button variant="hero" className="gap-2 w-full sm:w-auto" onClick={openAddWizard}>
           <Plus className="w-4 h-4" />
-          Add Item
+          Add {activeTab === 'auction' ? 'Auction' : 'Sale'} Item
         </Button>
+      </div>
+
+      {/* Sale / Auction Tabs */}
+      <div className="inline-flex p-1 rounded-lg bg-card/50 border border-border/50">
+        {(['sale', 'auction'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === t
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {t === 'sale' ? 'Sale Items' : 'Auction Items'}
+          </button>
+        ))}
       </div>
 
       {/* Search + Filter */}
