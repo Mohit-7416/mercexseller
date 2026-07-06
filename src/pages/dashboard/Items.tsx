@@ -26,10 +26,12 @@ const Items = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showWizard, setShowWizard] = useState(false);
+  const [wizardListingType, setWizardListingType] = useState<'sale' | 'auction'>('sale');
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'sale' | 'auction'>('sale');
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
