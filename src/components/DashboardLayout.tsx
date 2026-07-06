@@ -185,7 +185,7 @@ const DashboardLayout = () => {
           <div className="w-9" />
         </div>
 
-        <div className="p-4 md:p-8">
+        <div className="p-4 md:p-8 pb-24 md:pb-8">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 10 }}
@@ -196,8 +196,12 @@ const DashboardLayout = () => {
           </motion.div>
         </div>
       </main>
+
+      {/* Mobile bottom tab bar */}
+      <MobileBottomNav />
     </div>
   );
 };
+
 
 export default DashboardLayout;
