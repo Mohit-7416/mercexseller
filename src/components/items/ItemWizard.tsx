@@ -135,6 +135,7 @@ const ItemWizard = ({
         cost_price: item.cost_price?.toString() || '',
         unitOfMeasure: savedData.unitOfMeasure || 'pieces',
         isActive: item.is_active,
+        listingType: ((savedData as any).listing_type === 'auction' ? 'auction' : listingType),
         parameters: existingParameters,
         hasVariants: existingVariants.length > 0,
         variants: existingVariants,
