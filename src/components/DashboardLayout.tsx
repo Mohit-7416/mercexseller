@@ -25,15 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-
-const navItems = [
-  { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { path: "/dashboard/create", label: "Create Listing", icon: PlusCircle },
-  { path: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
-  { path: "/dashboard/items", label: "Items", icon: Package },
-  { path: "/dashboard/analysis", label: "Analysis", icon: BarChart3 },
-  { path: "/dashboard/settings", label: "Settings", icon: Settings },
-];
+import MobileBottomNav from "./MobileBottomNav";
 
 const DashboardLayout = () => {
   const location = useLocation();
