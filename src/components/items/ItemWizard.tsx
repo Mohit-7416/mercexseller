@@ -60,6 +60,7 @@ interface ItemWizardProps {
   getSubcategoriesByCategory: (categoryId: string) => Subcategory[];
   shopId: string;
   saving: boolean;
+  listingType?: 'sale' | 'auction';
 }
 
 const ItemWizard = ({
@@ -70,8 +71,10 @@ const ItemWizard = ({
   categories,
   getSubcategoriesByCategory,
   shopId,
-  saving
+  saving,
+  listingType = 'sale',
 }: ItemWizardProps) => {
+  const isAuction = listingType === 'auction';
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<WizardFormData>({
     name: '',
