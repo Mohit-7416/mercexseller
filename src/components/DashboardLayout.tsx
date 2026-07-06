@@ -27,6 +27,16 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import MobileBottomNav from "./MobileBottomNav";
 
+const navItems = [
+  { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { path: "/dashboard/create", label: "Create Listing", icon: PlusCircle },
+  { path: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
+  { path: "/dashboard/items", label: "Items", icon: Package },
+  { path: "/dashboard/analysis", label: "Analysis", icon: BarChart3 },
+  { path: "/dashboard/settings", label: "Settings", icon: Settings },
+];
+
+
 const DashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
