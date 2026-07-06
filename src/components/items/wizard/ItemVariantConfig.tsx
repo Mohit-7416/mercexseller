@@ -304,35 +304,45 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
         <div className="p-6 rounded-lg border border-border/50 space-y-6">
           <div className="flex items-center gap-3">
             <Package className="w-5 h-5 text-primary" />
-            <h4 className="font-medium">Single Item Inventory</h4>
-          </div>
-          
-          {/* Stock Summary */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/20">
-              <p className="text-xs text-muted-foreground">Available</p>
-              <p className="text-xl font-bold text-secondary">{formData.singleQuantity - formData.singleSoldQuantity}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
-              <p className="text-xs text-muted-foreground">Sold</p>
-              <p className="text-xl font-bold">{formData.singleSoldQuantity}</p>
-            </div>
+            <h4 className="font-medium">
+              {formData.listingType === 'auction' ? 'Auction Item (single unit)' : 'Single Item Inventory'}
+            </h4>
           </div>
 
-          {/* Quantity Input */}
-          <div className="space-y-2">
-            <Label>Available Quantity</Label>
-            <Input
-              type="number"
-              min="0"
-              value={formData.singleQuantity}
-              onChange={(e) => updateFormData({ singleQuantity: parseInt(e.target.value) || 0 })}
-              className={errors.singleQuantity ? 'border-destructive' : ''}
-            />
-            {errors.singleQuantity && (
-              <p className="text-xs text-destructive">{errors.singleQuantity}</p>
-            )}
-          </div>
+          {formData.listingType === 'auction' ? (
+            <div className="p-3 rounded-lg bg-primary/10 text-sm text-primary border border-primary/20">
+              Auction items are treated as a single unique unit — quantity is fixed to 1.
+            </div>
+          ) : (
+            <>
+              {/* Stock Summary */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/20">
+                  <p className="text-xs text-muted-foreground">Available</p>
+                  <p className="text-xl font-bold text-secondary">{formData.singleQuantity - formData.singleSoldQuantity}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                  <p className="text-xs text-muted-foreground">Sold</p>
+                  <p className="text-xl font-bold">{formData.singleSoldQuantity}</p>
+                </div>
+              </div>
+
+              {/* Quantity Input */}
+              <div className="space-y-2">
+                <Label>Available Quantity</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={formData.singleQuantity}
+                  onChange={(e) => updateFormData({ singleQuantity: parseInt(e.target.value) || 0 })}
+                  className={errors.singleQuantity ? 'border-destructive' : ''}
+                />
+                {errors.singleQuantity && (
+                  <p className="text-xs text-destructive">{errors.singleQuantity}</p>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Images */}
           <div className="space-y-2">
