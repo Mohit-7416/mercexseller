@@ -118,9 +118,16 @@ const ItemCard = ({
       <div className="space-y-1.5 sm:space-y-2">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold line-clamp-1 text-sm sm:text-base">{item.name}</h3>
-          <span className={`px-1.5 py-0.5 sm:px-2 rounded-full text-[10px] sm:text-xs font-medium shrink-0 ${status.class}`}>
-            {status.label}
-          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            {(item.dimensions as any)?.listing_type === 'auction' && (
+              <span className="px-1.5 py-0.5 sm:px-2 rounded-full text-[10px] sm:text-xs font-medium bg-primary/15 text-primary">
+                Auction
+              </span>
+            )}
+            <span className={`px-1.5 py-0.5 sm:px-2 rounded-full text-[10px] sm:text-xs font-medium ${status.class}`}>
+              {status.label}
+            </span>
+          </div>
         </div>
         
         <div className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
