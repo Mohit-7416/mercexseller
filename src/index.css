@@ -127,12 +127,17 @@
   /* Accent color presets — override primary + ring + sea-green tokens so
      every component that references either changes with the accent. Higher
      specificity (html.accent-*) ensures they win over .dark / .light. */
-  html.accent-sea    { --primary: 165 45% 40%; --ring: 165 45% 40%; --sidebar-primary: 165 45% 40%; --sea-green: 165 45% 40%; --sea-green-light: 165 45% 50%; --sea-green-dark: 165 45% 30%; }
-  html.accent-brown  { --primary: 32 65% 45%;  --ring: 32 65% 45%;  --sidebar-primary: 32 65% 45%;  --sea-green: 32 65% 45%;  --sea-green-light: 32 65% 55%;  --sea-green-dark: 32 65% 35%; }
-  html.accent-ocean  { --primary: 200 70% 45%; --ring: 200 70% 45%; --sidebar-primary: 200 70% 45%; --sea-green: 200 70% 45%; --sea-green-light: 200 70% 55%; --sea-green-dark: 200 70% 35%; }
-  html.accent-sunset { --primary: 18 80% 55%;  --ring: 18 80% 55%;  --sidebar-primary: 18 80% 55%;  --sea-green: 18 80% 55%;  --sea-green-light: 18 80% 65%;  --sea-green-dark: 18 80% 45%; }
-  html.accent-forest { --primary: 140 40% 35%; --ring: 140 40% 35%; --sidebar-primary: 140 40% 35%; --sea-green: 140 40% 35%; --sea-green-light: 140 40% 45%; --sea-green-dark: 140 40% 25%; }
-  html.accent-plum   { --primary: 285 45% 45%; --ring: 285 45% 45%; --sidebar-primary: 285 45% 45%; --sea-green: 285 45% 45%; --sea-green-light: 285 45% 55%; --sea-green-dark: 285 45% 35%; }
+  html.accent-sea    { --primary: 165 45% 40%; --ring: 165 45% 40%; --sidebar-primary: 165 45% 40%; --sea-green: 165 45% 40%; --sea-green-light: 165 45% 50%; --sea-green-dark: 165 45% 30%; --secondary: 165 45% 55%; --brown: 165 45% 55%; --brown-light: 165 45% 65%; --brown-dark: 165 45% 45%; --accent-color: 165 45% 40%; }
+  html.accent-brown  { --primary: 32 65% 45%;  --ring: 32 65% 45%;  --sidebar-primary: 32 65% 45%;  --sea-green: 32 65% 45%;  --sea-green-light: 32 65% 55%;  --sea-green-dark: 32 65% 35%;  --secondary: 32 65% 60%;  --brown: 32 65% 45%;  --brown-light: 32 65% 55%;  --brown-dark: 32 65% 35%;  --accent-color: 32 65% 45%; }
+  html.accent-ocean  { --primary: 200 70% 45%; --ring: 200 70% 45%; --sidebar-primary: 200 70% 45%; --sea-green: 200 70% 45%; --sea-green-light: 200 70% 55%; --sea-green-dark: 200 70% 35%; --secondary: 200 70% 60%; --brown: 200 70% 60%; --brown-light: 200 70% 70%; --brown-dark: 200 70% 50%; --accent-color: 200 70% 45%; }
+  html.accent-sunset { --primary: 18 80% 55%;  --ring: 18 80% 55%;  --sidebar-primary: 18 80% 55%;  --sea-green: 18 80% 55%;  --sea-green-light: 18 80% 65%;  --sea-green-dark: 18 80% 45%;  --secondary: 18 80% 65%;  --brown: 18 80% 65%;  --brown-light: 18 80% 75%;  --brown-dark: 18 80% 55%;  --accent-color: 18 80% 55%; }
+  html.accent-forest { --primary: 140 40% 35%; --ring: 140 40% 35%; --sidebar-primary: 140 40% 35%; --sea-green: 140 40% 35%; --sea-green-light: 140 40% 45%; --sea-green-dark: 140 40% 25%; --secondary: 140 40% 50%; --brown: 140 40% 50%; --brown-light: 140 40% 60%; --brown-dark: 140 40% 40%; --accent-color: 140 40% 35%; }
+  html.accent-plum   { --primary: 285 45% 45%; --ring: 285 45% 45%; --sidebar-primary: 285 45% 45%; --sea-green: 285 45% 45%; --sea-green-light: 285 45% 55%; --sea-green-dark: 285 45% 35%; --secondary: 285 45% 60%; --brown: 285 45% 60%; --brown-light: 285 45% 70%; --brown-dark: 285 45% 50%; --accent-color: 285 45% 45%; }
+
+  /* Icons in navigational surfaces inherit the current accent color so
+     the whole nav visually shifts when a user picks an accent. */
+  .accent-icon { color: hsl(var(--primary)); }
+  aside .lucide, [data-mobile-bottom-nav] .lucide { color: hsl(var(--primary)); }
 }
 
 @layer base {

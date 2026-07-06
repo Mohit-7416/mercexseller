@@ -26,10 +26,12 @@ const Items = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showWizard, setShowWizard] = useState(false);
+  const [wizardListingType, setWizardListingType] = useState<'sale' | 'auction'>('sale');
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'sale' | 'auction'>('sale');
 
   // Filter state
   const [filterOpen, setFilterOpen] = useState(false);
@@ -78,6 +80,9 @@ const Items = () => {
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {
+      const itemType = (item.dimensions as any)?.listing_type === 'auction' ? 'auction' : 'sale';
+      if (itemType !== activeTab) return false;
+
       const matchesSearch =
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -102,7 +107,7 @@ const Items = () => {
 
       return true;
     });
-  }, [items, searchTerm, filterCategory, filterSubcategory, filterMinPrice, filterMaxPrice, filterDateFrom, filterDateTo]);
+  }, [items, searchTerm, filterCategory, filterSubcategory, filterMinPrice, filterMaxPrice, filterDateFrom, filterDateTo, activeTab]);
 
   const resetFilters = () => {
     setFilterCategory("all");
@@ -136,11 +141,14 @@ const Items = () => {
 
   const openAddWizard = () => {
     setSelectedItem(null);
+    setWizardListingType(activeTab);
     setShowWizard(true);
   };
 
   const openEditWizard = (item: Item) => {
     setSelectedItem(item);
+    const t = (item.dimensions as any)?.listing_type === 'auction' ? 'auction' : 'sale';
+    setWizardListingType(t);
     setShowWizard(true);
   };
 
@@ -344,8 +352,25 @@ const Items = () => {
         </div>
         <Button variant="hero" className="gap-2 w-full sm:w-auto" onClick={openAddWizard}>
           <Plus className="w-4 h-4" />
-          Add Item
+          Add {activeTab === 'auction' ? 'Auction' : 'Sale'} Item
         </Button>
+      </div>
+
+      {/* Sale / Auction Tabs */}
+      <div className="inline-flex p-1 rounded-lg bg-card/50 border border-border/50">
+        {(['sale', 'auction'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === t
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {t === 'sale' ? 'Sale Items' : 'Auction Items'}
+          </button>
+        ))}
       </div>
 
       {/* Search + Filter */}
@@ -510,6 +535,7 @@ const Items = () => {
           getSubcategoriesByCategory={getSubcategoriesByCategory}
           shopId={currentShop.id}
           saving={saving}
+          listingType={wizardListingType}
         />
       )}
 

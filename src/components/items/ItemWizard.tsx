@@ -30,6 +30,8 @@ export interface WizardFormData {
   cost_price: string;
   unitOfMeasure: string;
   isActive: boolean;
+  // Listing type (sale = has quantity; auction = single unit)
+  listingType: 'sale' | 'auction';
   // Parameters
   parameters: Parameter[];
   // Variant Config
@@ -60,6 +62,7 @@ interface ItemWizardProps {
   getSubcategoriesByCategory: (categoryId: string) => Subcategory[];
   shopId: string;
   saving: boolean;
+  listingType?: 'sale' | 'auction';
 }
 
 const ItemWizard = ({
@@ -70,8 +73,10 @@ const ItemWizard = ({
   categories,
   getSubcategoriesByCategory,
   shopId,
-  saving
+  saving,
+  listingType = 'sale',
 }: ItemWizardProps) => {
+  const isAuction = listingType === 'auction';
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<WizardFormData>({
     name: '',
@@ -84,6 +89,7 @@ const ItemWizard = ({
     cost_price: '',
     unitOfMeasure: 'pieces',
     isActive: true,
+    listingType,
     parameters: [],
     hasVariants: false,
     variants: [],
@@ -129,6 +135,7 @@ const ItemWizard = ({
         cost_price: item.cost_price?.toString() || '',
         unitOfMeasure: savedData.unitOfMeasure || 'pieces',
         isActive: item.is_active,
+        listingType: ((savedData as any).listing_type === 'auction' ? 'auction' : listingType),
         parameters: existingParameters,
         hasVariants: existingVariants.length > 0,
         variants: existingVariants,
@@ -150,6 +157,7 @@ const ItemWizard = ({
         cost_price: '',
         unitOfMeasure: 'pieces',
         isActive: true,
+        listingType,
         parameters: [],
         hasVariants: false,
         variants: [],
@@ -241,14 +249,18 @@ const ItemWizard = ({
   const handleSave = async () => {
     if (!validateStep(currentStep)) return;
 
+    // Auction items are always a single unit with no variants
+    const effectiveHasVariants = isAuction ? false : formData.hasVariants;
+    const effectiveSingleQty = isAuction ? 1 : formData.singleQuantity;
+
     // Calculate total quantity
-    const totalQuantity = formData.hasVariants
+    const totalQuantity = effectiveHasVariants
       ? formData.variants.reduce((sum, v) => sum + v.quantity, 0)
-      : formData.singleQuantity;
+      : effectiveSingleQty;
 
     // Collect all images from variants or single SKU
     const allImageUrls: string[] = [];
-    if (formData.hasVariants) {
+    if (effectiveHasVariants) {
       formData.variants.forEach(v => {
         const variantImages = v.images || [];
         variantImages.forEach(img => {
@@ -279,16 +291,17 @@ const ItemWizard = ({
       images: allImageUrls,
       variants: null,
       dimensions: {
+        listing_type: listingType,
         custom_category: formData.category_id === OTHERS_ID ? formData.custom_category.trim() : null,
         custom_subcategory: formData.subcategory_id === OTHERS_ID ? formData.custom_subcategory.trim() : null,
         unitOfMeasure: formData.unitOfMeasure,
         parameters: formData.parameters,
-        variants: formData.hasVariants ? formData.variants : [],
-        hasVariants: formData.hasVariants,
-        singleQuantity: formData.hasVariants ? 0 : formData.singleQuantity,
-        singleSoldQuantity: formData.hasVariants ? 0 : formData.singleSoldQuantity,
-        singleNotes: formData.hasVariants ? '' : formData.singleNotes,
-        singleImages: formData.hasVariants ? [] : formData.singleImages,
+        variants: effectiveHasVariants ? formData.variants : [],
+        hasVariants: effectiveHasVariants,
+        singleQuantity: effectiveHasVariants ? 0 : effectiveSingleQty,
+        singleSoldQuantity: effectiveHasVariants ? 0 : formData.singleSoldQuantity,
+        singleNotes: effectiveHasVariants ? '' : formData.singleNotes,
+        singleImages: effectiveHasVariants ? [] : formData.singleImages,
       }
     };
 
