@@ -12,6 +12,12 @@ export const ACCENTS: { id: Accent; label: string; swatch: string }[] = [
   { id: 'plum', label: 'Plum', swatch: 'hsl(285 45% 45%)' },
 ];
 
+const applyAccentDom = (a: Accent) => {
+  const root = document.documentElement;
+  ACCENTS.forEach(x => root.classList.remove(`accent-${x.id}`));
+  root.classList.add(`accent-${a}`);
+};
+
 export const applyTheme = (t: Theme) => {
   const root = document.documentElement;
   root.classList.remove('light', 'dark');
@@ -19,12 +25,14 @@ export const applyTheme = (t: Theme) => {
   localStorage.setItem('theme', t);
 };
 
+/** Apply and persist immediately. */
 export const applyAccent = (a: Accent) => {
-  const root = document.documentElement;
-  ACCENTS.forEach(x => root.classList.remove(`accent-${x.id}`));
-  root.classList.add(`accent-${a}`);
+  applyAccentDom(a);
   localStorage.setItem('accent', a);
 };
+
+/** Preview only – DOM class swap, no persistence. */
+export const previewAccentDom = (a: Accent) => applyAccentDom(a);
 
 export const getInitialTheme = (): Theme => {
   const saved = localStorage.getItem('theme');
@@ -41,5 +49,13 @@ export const useTheme = () => {
   const [accent, setAccentState] = useState<Accent>(getInitialAccent);
   useEffect(() => { applyTheme(theme); }, [theme]);
   useEffect(() => { applyAccent(accent); }, [accent]);
-  return { theme, setTheme: setThemeState, accent, setAccent: setAccentState };
+
+  /** Change accent visually without persisting. Used for live preview in Settings. */
+  const previewAccent = (a: Accent) => previewAccentDom(a);
+  /** Persist the chosen accent (called on Save Changes). */
+  const commitAccent = (a: Accent) => setAccentState(a);
+  /** Revert DOM back to last-saved accent (called on unmount/cancel). */
+  const restoreSavedAccent = () => applyAccentDom(accent);
+
+  return { theme, setTheme: setThemeState, accent, setAccent: setAccentState, previewAccent, commitAccent, restoreSavedAccent };
 };
