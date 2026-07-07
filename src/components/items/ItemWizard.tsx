@@ -328,6 +328,7 @@ const ItemWizard = ({
           <ItemParameters
             parameters={formData.parameters}
             onChange={(parameters) => updateFormData({ parameters })}
+            listingType={listingType}
           />
         );
       case 2:
