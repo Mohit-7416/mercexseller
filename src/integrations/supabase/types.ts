@@ -500,6 +500,80 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          buyer_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string | null
+          pinned: boolean
+          rating: number
+          seller_id: string
+          seller_replied_at: string | null
+          seller_reply: string | null
+          shop_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          pinned?: boolean
+          rating: number
+          seller_id: string
+          seller_replied_at?: string | null
+          seller_reply?: string | null
+          shop_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          pinned?: boolean
+          rating?: number
+          seller_id?: string
+          seller_replied_at?: string | null
+          seller_reply?: string | null
+          shop_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shops: {
         Row: {
           address_line: string | null
