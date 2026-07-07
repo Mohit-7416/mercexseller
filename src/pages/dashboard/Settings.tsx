@@ -227,6 +227,22 @@ const Settings = () => {
       >
         {activeTab === "personal" && (
           <div className="space-y-4">
+            {/* Overall rating */}
+            <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall rating</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-2xl font-bold text-primary">{reviewStats.average.toFixed(1)}</span>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <Star key={i} className={`w-4 h-4 ${i <= Math.round(reviewStats.average) ? 'fill-primary text-primary' : 'text-muted-foreground/40'}`} />
+                    ))}
+                  </div>
+                  <span className="text-xs text-muted-foreground">({reviewStats.total} review{reviewStats.total === 1 ? '' : 's'})</span>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/reviews')}>View reviews</Button>
+            </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
