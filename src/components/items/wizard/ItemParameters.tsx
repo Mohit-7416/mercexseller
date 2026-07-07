@@ -11,9 +11,13 @@ const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(7
 interface ItemParametersProps {
   parameters: Parameter[];
   onChange: (parameters: Parameter[]) => void;
+  listingType?: 'sale' | 'auction';
 }
 
-const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
+const ItemParameters = ({ parameters, onChange, listingType = 'sale' }: ItemParametersProps) => {
+  const isAuction = listingType === 'auction';
+  const paramNoun = isAuction ? 'Specification' : 'Parameter';
+  const valueNoun = isAuction ? 'Spec Value' : 'Value';
   const [newParamName, setNewParamName] = useState('');
   const [expandedParams, setExpandedParams] = useState<Set<string>>(new Set());
   const [newValueInputs, setNewValueInputs] = useState<Record<string, string>>({});
@@ -110,9 +114,11 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Product Parameters</h3>
+        <h3 className="text-lg font-semibold mb-2">{isAuction ? 'Item Specifications' : 'Product Parameters'}</h3>
         <p className="text-sm text-muted-foreground">
-          Define custom attributes like Size, Color, Material, etc. Each parameter can have multiple values.
+          {isAuction
+            ? 'Describe this auction item with fixed specifications (e.g. Material: Silk, Size: 42). Each specification holds exactly one value.'
+            : 'Define custom attributes like Size, Color, Material, etc. Each parameter can have multiple values.'}
         </p>
       </div>
 
