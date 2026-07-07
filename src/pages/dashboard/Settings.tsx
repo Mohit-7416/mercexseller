@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Store, Bell, Save, LogOut, Loader2, Palette, Moon, Sun } from "lucide-react";
+import { User, Store, Bell, Save, LogOut, Loader2, Palette, Moon, Sun, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
 import { useShop } from "@/contexts/ShopContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme, Accent } from "@/hooks/useTheme";
+import { useReviews } from "@/hooks/useReviews";
 import { useIndiaStates, useIndiaCities, useIndiaPincodes } from "@/hooks/useIndiaLocations";
 import BackButton from "@/components/BackButton";
 
@@ -141,7 +142,17 @@ const Settings = () => {
     navigate("/");
   };
 
-  const { theme, setTheme, accent, setAccent } = useTheme();
+  const { theme, setTheme, accent, previewAccent, commitAccent, restoreSavedAccent } = useTheme();
+  const { stats: reviewStats } = useReviews();
+  const [pendingAccent, setPendingAccent] = useState<Accent>(accent);
+  useEffect(() => { setPendingAccent(accent); }, [accent]);
+  // Revert live preview if the user leaves Settings without saving
+  useEffect(() => () => { restoreSavedAccent(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const handlePickAccent = (a: Accent) => {
+    setPendingAccent(a);
+    previewAccent(a);
+    setHasChanges(true);
+  };
   const ACCENT_OPTIONS = [
     { id: 'sea', label: 'Sea Green', swatch: 'hsl(165 45% 40%)' },
     { id: 'brown', label: 'Warm Brown', swatch: 'hsl(32 65% 45%)' },
