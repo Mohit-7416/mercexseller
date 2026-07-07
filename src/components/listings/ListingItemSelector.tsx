@@ -82,8 +82,9 @@ const ListingItemSelector = ({
     <div className="space-y-4">
       <Label className="flex items-center gap-2">
         <Package className="w-4 h-4" />
-        Items for this Listing
+        {isAuction ? 'Auction items for this listing' : 'Sale items for this listing'}
       </Label>
+      <p className="text-xs text-muted-foreground -mt-3">Only {isAuction ? 'auction' : 'sale'} items are shown here.</p>
 
       {/* Selected Items */}
       {selectedItems.length > 0 && (
