@@ -53,6 +53,12 @@ const ListingItemSelector = ({
       if (selectedIds.includes(item.id)) return false;
       if (!item.is_active) return false;
 
+      // Only surface items matching the listing type (auction items in auction listings,
+      // sale items in live sale listings).
+      const itemType = (item.dimensions as any)?.listing_type === 'auction' ? 'auction' : 'sale';
+      const wantType = isAuction ? 'auction' : 'sale';
+      if (itemType !== wantType) return false;
+
       const matchesSearch =
         !searchQuery ||
         item.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -65,7 +71,7 @@ const ListingItemSelector = ({
 
       return matchesSearch && matchesCategory && matchesSubcategory;
     });
-  }, [items, selectedItems, searchQuery, filterCategory, filterSubcategory]);
+  }, [items, selectedItems, searchQuery, filterCategory, filterSubcategory, isAuction]);
 
   const hasActiveFilter = searchQuery.trim() !== "" || filterCategory !== "" || filterSubcategory !== "";
 
@@ -76,8 +82,9 @@ const ListingItemSelector = ({
     <div className="space-y-4">
       <Label className="flex items-center gap-2">
         <Package className="w-4 h-4" />
-        Items for this Listing
+        {isAuction ? 'Auction items for this listing' : 'Sale items for this listing'}
       </Label>
+      <p className="text-xs text-muted-foreground -mt-3">Only {isAuction ? 'auction' : 'sale'} items are shown here.</p>
 
       {/* Selected Items */}
       {selectedItems.length > 0 && (

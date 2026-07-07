@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Store, Bell, Save, LogOut, Loader2, Palette, Moon, Sun } from "lucide-react";
+import { User, Store, Bell, Save, LogOut, Loader2, Palette, Moon, Sun, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
 import { useShop } from "@/contexts/ShopContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme, Accent } from "@/hooks/useTheme";
+import { useReviews } from "@/hooks/useReviews";
 import { useIndiaStates, useIndiaCities, useIndiaPincodes } from "@/hooks/useIndiaLocations";
 import BackButton from "@/components/BackButton";
 
@@ -116,6 +117,9 @@ const Settings = () => {
         if (shopError) throw shopError;
       }
 
+      // Persist accent choice
+      if (pendingAccent !== accent) commitAccent(pendingAccent);
+
       toast({
         title: "Settings saved!",
         description: "Your changes have been saved successfully.",
@@ -141,7 +145,17 @@ const Settings = () => {
     navigate("/");
   };
 
-  const { theme, setTheme, accent, setAccent } = useTheme();
+  const { theme, setTheme, accent, previewAccent, commitAccent, restoreSavedAccent } = useTheme();
+  const { stats: reviewStats } = useReviews();
+  const [pendingAccent, setPendingAccent] = useState<Accent>(accent);
+  useEffect(() => { setPendingAccent(accent); }, [accent]);
+  // Revert live preview if the user leaves Settings without saving
+  useEffect(() => () => { restoreSavedAccent(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const handlePickAccent = (a: Accent) => {
+    setPendingAccent(a);
+    previewAccent(a);
+    setHasChanges(true);
+  };
   const ACCENT_OPTIONS = [
     { id: 'sea', label: 'Sea Green', swatch: 'hsl(165 45% 40%)' },
     { id: 'brown', label: 'Warm Brown', swatch: 'hsl(32 65% 45%)' },
@@ -213,6 +227,22 @@ const Settings = () => {
       >
         {activeTab === "personal" && (
           <div className="space-y-4">
+            {/* Overall rating */}
+            <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall rating</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-2xl font-bold text-primary">{reviewStats.average.toFixed(1)}</span>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <Star key={i} className={`w-4 h-4 ${i <= Math.round(reviewStats.average) ? 'fill-primary text-primary' : 'text-muted-foreground/40'}`} />
+                    ))}
+                  </div>
+                  <span className="text-xs text-muted-foreground">({reviewStats.total} review{reviewStats.total === 1 ? '' : 's'})</span>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/reviews')}>View reviews</Button>
+            </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
@@ -477,9 +507,9 @@ const Settings = () => {
                 {ACCENT_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
-                    onClick={() => setAccent(opt.id)}
+                    onClick={() => handlePickAccent(opt.id)}
                     className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                      accent === opt.id
+                      pendingAccent === opt.id
                         ? "border-primary bg-primary/5"
                         : "border-border/50 bg-card/30 hover:border-border"
                     }`}
@@ -492,6 +522,7 @@ const Settings = () => {
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground mt-2">Preview shown live — click <span className="font-medium">Save Changes</span> to apply this accent as the primary icon color.</p>
             </div>
           </div>
         )}

@@ -11,9 +11,13 @@ const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(7
 interface ItemParametersProps {
   parameters: Parameter[];
   onChange: (parameters: Parameter[]) => void;
+  listingType?: 'sale' | 'auction';
 }
 
-const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
+const ItemParameters = ({ parameters, onChange, listingType = 'sale' }: ItemParametersProps) => {
+  const isAuction = listingType === 'auction';
+  const paramNoun = isAuction ? 'Specification' : 'Parameter';
+  const valueNoun = isAuction ? 'Spec Value' : 'Value';
   const [newParamName, setNewParamName] = useState('');
   const [expandedParams, setExpandedParams] = useState<Set<string>>(new Set());
   const [newValueInputs, setNewValueInputs] = useState<Record<string, string>>({});
@@ -110,9 +114,11 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Product Parameters</h3>
+        <h3 className="text-lg font-semibold mb-2">{isAuction ? 'Item Specifications' : 'Product Parameters'}</h3>
         <p className="text-sm text-muted-foreground">
-          Define custom attributes like Size, Color, Material, etc. Each parameter can have multiple values.
+          {isAuction
+            ? 'Describe this auction item with fixed specifications (e.g. Material: Silk, Size: 42). Each specification holds exactly one value.'
+            : 'Define custom attributes like Size, Color, Material, etc. Each parameter can have multiple values.'}
         </p>
       </div>
 
@@ -204,24 +210,30 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
                 <CollapsibleContent>
                   <div className="p-4 pt-0 border-t border-border/50 space-y-4">
                     {/* Add Value Input */}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Input
-                        value={newValueInputs[param.id] || ''}
-                        onChange={(e) => setNewValueInputs(prev => ({ ...prev, [param.id]: e.target.value }))}
-                        placeholder={`Add ${param.name.toLowerCase()} value`}
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameterValue(param.id))}
-                        className="flex-1 min-w-0"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => addParameterValue(param.id)}
-                        disabled={!newValueInputs[param.id]?.trim()}
-                        className="shrink-0 w-full sm:w-auto"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add Value
-                      </Button>
-                    </div>
+                    {isAuction && param.values.length >= 1 ? (
+                      <div className="p-2 rounded-md bg-muted/50 border border-border/50 text-xs text-muted-foreground">
+                        Auction items allow only one {valueNoun.toLowerCase()} per {paramNoun.toLowerCase()}. Remove the existing value to add a different one.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          value={newValueInputs[param.id] || ''}
+                          onChange={(e) => setNewValueInputs(prev => ({ ...prev, [param.id]: e.target.value }))}
+                          placeholder={`Enter ${param.name.toLowerCase()} ${valueNoun.toLowerCase()}`}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameterValue(param.id))}
+                          className="flex-1 min-w-0"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => addParameterValue(param.id)}
+                          disabled={!newValueInputs[param.id]?.trim()}
+                          className="shrink-0 w-full sm:w-auto"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          {isAuction ? `Set ${valueNoun}` : `Add ${valueNoun}`}
+                        </Button>
+                      </div>
+                    )}
 
 
                     {/* Values List */}
@@ -256,12 +268,12 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
 
       {/* Add New Parameter */}
       <div className="p-4 rounded-lg border-2 border-dashed border-border/50 space-y-4">
-        <Label className="text-sm font-medium">Add New Parameter</Label>
+        <Label className="text-sm font-medium">Add New {paramNoun}</Label>
         <div className="flex flex-col sm:flex-row gap-2">
           <Input
             value={newParamName}
             onChange={(e) => setNewParamName(e.target.value)}
-            placeholder="Parameter name (e.g., Size, Color, Material)"
+            placeholder={`${paramNoun} name (e.g., Size, Material, Weight)`}
             className="flex-1 min-w-0"
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addParameter())}
           />
@@ -272,7 +284,7 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
             className="shrink-0 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 mr-1" />
-            Add Parameter
+            Add {paramNoun}
           </Button>
         </div>
       </div>
@@ -281,8 +293,8 @@ const ItemParameters = ({ parameters, onChange }: ItemParametersProps) => {
       {parameters.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
           <List className="w-10 h-10 mx-auto mb-3 opacity-50" />
-          <p className="font-medium">No parameters defined</p>
-          <p className="text-sm">Add parameters to enable variant management</p>
+          <p className="font-medium">No {paramNoun.toLowerCase()}s defined</p>
+          <p className="text-sm">{isAuction ? 'Add specifications to describe this auction item' : 'Add parameters to enable variant management'}</p>
         </div>
       )}
     </div>

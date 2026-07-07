@@ -21,6 +21,7 @@ import Items from "./pages/dashboard/Items";
 import Analysis from "./pages/dashboard/Analysis";
 import Settings from "./pages/dashboard/Settings";
 import LiveBroadcast from "./pages/dashboard/LiveBroadcast";
+import Reviews from "./pages/dashboard/Reviews";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ function App() {
                   <Route path="items" element={<Items />} />
                   <Route path="analysis" element={<Analysis />} />
                   <Route path="settings" element={<Settings />} />
+                  <Route path="reviews" element={<Reviews />} />
                 </Route>
                 <Route path="/dashboard/live/:id" element={
                   <ProtectedRoute requireShop>

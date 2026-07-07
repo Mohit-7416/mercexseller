@@ -12,6 +12,7 @@ import {
   Store,
   ChevronDown,
   Menu,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +33,7 @@ const navItems = [
   { path: "/dashboard/create", label: "Create Listing", icon: PlusCircle },
   { path: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
   { path: "/dashboard/items", label: "Items", icon: Package },
+  { path: "/dashboard/reviews", label: "Ratings & Reviews", icon: Star },
   { path: "/dashboard/analysis", label: "Analysis", icon: BarChart3 },
   { path: "/dashboard/settings", label: "Settings", icon: Settings },
 ];

@@ -218,12 +218,17 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
   const variantControlLocked = hasMultipleLOVValues;
   const variantControlHidden = allSingleLOV || activeParameters.length === 0;
 
+  const isAuction = formData.listingType === 'auction';
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Variant Configuration</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          {isAuction ? 'Auction Item Details' : 'Variant Configuration'}
+        </h3>
         <p className="text-sm text-muted-foreground">
-          Configure inventory management. Variants are auto-enabled when parameters have multiple values.
+          {isAuction
+            ? 'Auction items are one-of-a-kind — add images and any notes for the single unique lot below.'
+            : 'Configure inventory management. Variants are auto-enabled when parameters have multiple values.'}
         </p>
       </div>
 
@@ -305,13 +310,13 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
           <div className="flex items-center gap-3">
             <Package className="w-5 h-5 text-primary" />
             <h4 className="font-medium">
-              {formData.listingType === 'auction' ? 'Auction Item (single unit)' : 'Single Item Inventory'}
+              {formData.listingType === 'auction' ? 'Unique Auction Lot' : 'Single Item Inventory'}
             </h4>
           </div>
 
           {formData.listingType === 'auction' ? (
             <div className="p-3 rounded-lg bg-primary/10 text-sm text-primary border border-primary/20">
-              Auction items are treated as a single unique unit — quantity is fixed to 1.
+              This is a one-of-a-kind lot. Only one unit exists and it will be sold to the highest bidder.
             </div>
           ) : (
             <>
