@@ -117,6 +117,9 @@ const Settings = () => {
         if (shopError) throw shopError;
       }
 
+      // Persist accent choice
+      if (pendingAccent !== accent) commitAccent(pendingAccent);
+
       toast({
         title: "Settings saved!",
         description: "Your changes have been saved successfully.",
@@ -488,9 +491,9 @@ const Settings = () => {
                 {ACCENT_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
-                    onClick={() => setAccent(opt.id)}
+                    onClick={() => handlePickAccent(opt.id)}
                     className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                      accent === opt.id
+                      pendingAccent === opt.id
                         ? "border-primary bg-primary/5"
                         : "border-border/50 bg-card/30 hover:border-border"
                     }`}
@@ -503,6 +506,7 @@ const Settings = () => {
                   </button>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground mt-2">Preview shown live — click <span className="font-medium">Save Changes</span> to apply this accent as the primary icon color.</p>
             </div>
           </div>
         )}
