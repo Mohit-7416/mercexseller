@@ -100,13 +100,19 @@ const ItemViewModal = ({
     ? selectedVariant.notes
     : singleNotes;
 
+  const isAuction = (item.dimensions as any)?.listing_type === 'auction';
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl w-[calc(100%-1rem)] sm:w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Item Details</span>
-            <Badge variant={status.variant}>{status.label}</Badge>
+            {isAuction ? (
+              <Badge variant="default">Auction</Badge>
+            ) : (
+              <Badge variant={status.variant}>{status.label}</Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 

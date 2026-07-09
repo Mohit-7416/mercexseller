@@ -55,6 +55,7 @@ const ItemCard = ({
     return { label: "In Stock", class: "bg-primary/10 text-primary" };
   };
 
+  const isAuction = (item.dimensions as any)?.listing_type === 'auction';
   const status = getStatusBadge(totalQuantity);
   const images = item.images || [];
   const primaryImage = images[0];
@@ -119,14 +120,15 @@ const ItemCard = ({
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold line-clamp-1 text-sm sm:text-base">{item.name}</h3>
           <div className="flex items-center gap-1 shrink-0">
-            {(item.dimensions as any)?.listing_type === 'auction' && (
+            {isAuction ? (
               <span className="px-1.5 py-0.5 sm:px-2 rounded-full text-[10px] sm:text-xs font-medium bg-primary/15 text-primary">
                 Auction
               </span>
+            ) : (
+              <span className={`px-1.5 py-0.5 sm:px-2 rounded-full text-[10px] sm:text-xs font-medium ${status.class}`}>
+                {status.label}
+              </span>
             )}
-            <span className={`px-1.5 py-0.5 sm:px-2 rounded-full text-[10px] sm:text-xs font-medium ${status.class}`}>
-              {status.label}
-            </span>
           </div>
         </div>
         
@@ -197,10 +199,12 @@ const ItemCard = ({
 
         <div className="flex items-center justify-between pt-1 sm:pt-2 gap-2">
           <span className="text-base sm:text-lg font-bold">₹{item.price.toLocaleString()}</span>
-          <div className="flex items-center gap-1 text-[11px] sm:text-sm text-muted-foreground shrink-0">
-            <Package className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span>{totalQuantity}</span>
-          </div>
+          {!isAuction && (
+            <div className="flex items-center gap-1 text-[11px] sm:text-sm text-muted-foreground shrink-0">
+              <Package className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>{totalQuantity}</span>
+            </div>
+          )}
         </div>
       </div>
 

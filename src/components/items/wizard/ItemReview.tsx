@@ -277,7 +277,7 @@ const ItemReview = ({ formData, categories, getSubcategoriesByCategory }: ItemRe
         </div>
       )}
 
-      {!formData.hasVariants && formData.singleQuantity === 0 && (
+      {!formData.hasVariants && formData.singleQuantity === 0 && formData.listingType !== 'auction' && (
         <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/10 text-secondary-foreground">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm">Quantity is set to 0. The item will show as out of stock.</span>
