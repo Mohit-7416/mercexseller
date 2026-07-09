@@ -232,66 +232,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
         </p>
       </div>
 
-      {/* Variant Toggle - Conditional display */}
-      {!variantControlHidden && (
-        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-          <RadioGroup
-            value={formData.hasVariants ? 'variants' : 'single'}
-            onValueChange={(value) => {
-              if (!variantControlLocked) {
-                updateFormData({ hasVariants: value === 'variants' });
-              }
-            }}
-            className="space-y-4"
-          >
-            <div className="flex items-start gap-3">
-              <RadioGroupItem 
-                value="single" 
-                id="single" 
-                className="mt-1" 
-                disabled={variantControlLocked}
-              />
-              <div className="space-y-1 flex-1">
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="single" className={`font-medium cursor-pointer ${variantControlLocked ? 'opacity-50' : ''}`}>
-                    Single SKU (No Variants)
-                  </Label>
-                  {variantControlLocked && (
-                    <Lock className="w-3 h-3 text-muted-foreground" />
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Item is tracked as a single unit. Parameters are informational only.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <RadioGroupItem value="variants" id="variants" className="mt-1" />
-              <div className="space-y-1">
-                <Label htmlFor="variants" className="font-medium cursor-pointer">
-                  Multiple Variants
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Each combination of parameter values is tracked separately.
-                  {activeParameters.length > 0 && (
-                    <span className="text-primary ml-1">
-                      ({possibleCombinations} possible combinations)
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
-          </RadioGroup>
-
-          {variantControlLocked && (
-            <div className="mt-3 p-2 rounded bg-primary/10 text-xs text-primary flex items-center gap-2">
-              <Lock className="w-3 h-3" />
-              Variants auto-enabled: One or more parameters have multiple values
-            </div>
-          )}
-        </div>
-      )}
+      {/* Variant mode is auto-managed from parameter values; no UI toggle shown. */}
 
       {/* No Parameters Message */}
       {activeParameters.length === 0 && (
