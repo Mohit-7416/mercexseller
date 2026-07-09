@@ -227,7 +227,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
         </h3>
         <p className="text-sm text-muted-foreground">
           {isAuction
-            ? 'Auction items are one-of-a-kind — add images and any notes for the single unique lot below.'
+            ? 'Add images and any notes for this auction lot.'
             : 'Configure inventory management. Variants are auto-enabled when parameters have multiple values.'}
         </p>
       </div>
