@@ -311,7 +311,7 @@ const ItemVariantConfig = ({ formData, updateFormData, errors, shopId }: ItemVar
             <Textarea
               value={formData.singleNotes}
               onChange={(e) => updateFormData({ singleNotes: e.target.value })}
-              placeholder="Add notes for this item (e.g., special handling, supplier info)"
+              placeholder="Add notes for this item"
               rows={2}
             />
           </div>
