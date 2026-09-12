@@ -281,19 +281,6 @@ const Orders = () => {
             <table className="w-full">
               <thead className="bg-card/50">
                 <tr>
-                  <th className="p-4 text-left text-sm font-medium text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      className="rounded border-border"
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedOrders(filteredOrders.map(o => o.id));
-                        } else {
-                          setSelectedOrders([]);
-                        }
-                      }}
-                    />
-                  </th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Order ID</th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Buyer</th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Date</th>
@@ -316,14 +303,6 @@ const Orders = () => {
                       transition={{ delay: 0.05 * index }}
                       className="hover:bg-card/30 transition-colors"
                     >
-                      <td className="p-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order.id)}
-                          onChange={() => toggleSelect(order.id)}
-                          className="rounded border-border"
-                        />
-                      </td>
                       <td className="p-4">
                         <div>
                           <span className="font-mono text-sm">{order.order_number}</span>
@@ -397,15 +376,8 @@ const Orders = () => {
                   className="p-4 space-y-3 bg-card/20"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={selectedOrders.includes(order.id)}
-                        onChange={() => toggleSelect(order.id)}
-                        className="mt-1 rounded border-border"
-                      />
-                      <div className="min-w-0">
-                        <div className="font-mono text-sm truncate">{order.order_number}</div>
+                    <div className="min-w-0">
+                      <div className="font-mono text-sm truncate">{order.order_number}</div>
                         {listing && (
                           <div className="text-xs text-muted-foreground truncate">{listing.listing_code}</div>
                         )}
