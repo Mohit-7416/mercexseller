@@ -30,9 +30,8 @@ const Orders = () => {
   const { categories } = useCategories();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
@@ -101,12 +100,6 @@ const Orders = () => {
       return true;
     });
   }, [orders, listings, searchTerm, fStatus, fType, fCategory, fMinAmt, fMaxAmt, fDateFrom, fDateTo, fCustName, fCustEmail, fItem]);
-
-  const toggleSelect = (id: string) => {
-    setSelectedOrders(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
 
   const handleStatusUpdate = async (id: string, status: OrderStatus) => {
     setUpdatingStatus(id);
