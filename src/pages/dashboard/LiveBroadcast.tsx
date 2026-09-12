@@ -34,6 +34,7 @@ const LiveBroadcast = () => {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [camOn, setCamOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
   const [starting, setStarting] = useState(true);
@@ -41,6 +42,8 @@ const LiveBroadcast = () => {
   const [myVote, setMyVote] = useState<"like" | "dislike" | null>(null);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [text, setText] = useState("");
+  const [chatConnected, setChatConnected] = useState(false);
+  const [sendingChat, setSendingChat] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [topBid, setTopBid] = useState<number>(0);
   const [itemBids, setItemBids] = useState<Record<string, number>>({});
@@ -130,7 +133,10 @@ const LiveBroadcast = () => {
         setViewers(Object.keys(state).length || 1);
       })
       .on("broadcast", { event: "chat" }, ({ payload }) => {
-        setChat(c => [...c, payload as ChatMsg].slice(-50));
+        const message = payload as ChatMsg;
+        setChat(current => current.some(item => item.id === message.id)
+          ? current
+          : [...current, message].slice(-50));
       })
       .on("broadcast", { event: "bid" }, ({ payload }) => {
         const amt = Number((payload as any)?.amount || 0);
@@ -151,14 +157,18 @@ const LiveBroadcast = () => {
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
+          setChatConnected(true);
           await channel.track({ role: "seller", name: profile?.full_name || "Seller" });
-          setChat(c => [...c, {
-            id: "welcome", user: "System", text: "You're live!", kind: "join", ts: Date.now(),
+          setChat(current => current.some(item => item.id === "welcome") ? current : [...current, {
+            id: "welcome", user: "System", text: "Chat connected", kind: "join", ts: Date.now(),
           }]);
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          setChatConnected(false);
         }
       });
 
     return () => {
+      setChatConnected(false);
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
@@ -202,8 +212,16 @@ const LiveBroadcast = () => {
     }
   };
 
-  const sendMessage = () => {
-    if (!text.trim() || !channelRef.current) return;
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [chat]);
+
+  const sendMessage = async () => {
+    if (!text.trim()) return;
+    if (!channelRef.current || !chatConnected) {
+      toast({ title: "Chat is connecting", description: "Please try again in a moment." });
+      return;
+    }
     const msg: ChatMsg = {
       id: crypto.randomUUID(),
       user: profile?.full_name || "Seller",
@@ -211,8 +229,14 @@ const LiveBroadcast = () => {
       kind: "msg",
       ts: Date.now(),
     };
-    channelRef.current.send({ type: "broadcast", event: "chat", payload: msg });
-    setChat(c => [...c, msg].slice(-50));
+    setSendingChat(true);
+    const response = await channelRef.current.send({ type: "broadcast", event: "chat", payload: msg });
+    setSendingChat(false);
+    if (response !== "ok") {
+      toast({ title: "Message not sent", description: "Check your connection and try again.", variant: "destructive" });
+      return;
+    }
+    setChat(current => [...current, msg].slice(-50));
     setText("");
   };
 
@@ -307,6 +331,7 @@ const LiveBroadcast = () => {
             </div>
           </div>
         ))}
+        <div ref={chatEndRef} />
       </div>
 
       {/* Bottom bar */}
@@ -334,12 +359,18 @@ const LiveBroadcast = () => {
             id="live-chat-input"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            placeholder="Say something..."
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void sendMessage();
+              }
+            }}
+            placeholder={chatConnected ? "Say something..." : "Connecting chat..."}
+            disabled={!chatConnected || sendingChat}
             className="flex-1 rounded-full bg-black/50 border-white/20 text-white placeholder:text-white/60"
           />
-          <Button size="icon" className="rounded-full" onClick={sendMessage}>
-            <Send className="w-4 h-4" />
+          <Button size="icon" className="rounded-full" onClick={() => void sendMessage()} disabled={!chatConnected || sendingChat || !text.trim()}>
+            {sendingChat ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
 

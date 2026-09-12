@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type Theme = 'dark' | 'light';
 export type Accent = 'sea' | 'brown' | 'ocean' | 'sunset' | 'forest' | 'plum';
@@ -47,15 +47,19 @@ export const getInitialAccent = (): Accent => {
 export const useTheme = () => {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
   const [accent, setAccentState] = useState<Accent>(getInitialAccent);
+  const committedAccentRef = useRef<Accent>(accent);
   useEffect(() => { applyTheme(theme); }, [theme]);
-  useEffect(() => { applyAccent(accent); }, [accent]);
 
   /** Change accent visually without persisting. Used for live preview in Settings. */
   const previewAccent = (a: Accent) => previewAccentDom(a);
   /** Persist the chosen accent (called on Save Changes). */
-  const commitAccent = (a: Accent) => setAccentState(a);
+  const commitAccent = (a: Accent) => {
+    committedAccentRef.current = a;
+    setAccentState(a);
+    applyAccent(a);
+  };
   /** Revert DOM back to last-saved accent (called on unmount/cancel). */
-  const restoreSavedAccent = () => applyAccentDom(accent);
+  const restoreSavedAccent = () => applyAccentDom(committedAccentRef.current);
 
   return { theme, setTheme: setThemeState, accent, setAccent: setAccentState, previewAccent, commitAccent, restoreSavedAccent };
 };
