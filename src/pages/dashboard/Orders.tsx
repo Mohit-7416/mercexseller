@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Search, Filter, MessageCircle, Calendar, ChevronDown, Package, Loader2, X } from "lucide-react";
+import { Search, Filter, MessageCircle, Calendar, Package, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -30,9 +30,8 @@ const Orders = () => {
   const { categories } = useCategories();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
@@ -102,12 +101,6 @@ const Orders = () => {
     });
   }, [orders, listings, searchTerm, fStatus, fType, fCategory, fMinAmt, fMaxAmt, fDateFrom, fDateTo, fCustName, fCustEmail, fItem]);
 
-  const toggleSelect = (id: string) => {
-    setSelectedOrders(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
-
   const handleStatusUpdate = async (id: string, status: OrderStatus) => {
     setUpdatingStatus(id);
     try {
@@ -144,12 +137,6 @@ const Orders = () => {
             <p className="text-muted-foreground">Manage and track your customer orders</p>
           </div>
         </div>
-        {selectedOrders.length > 0 && (
-          <Button variant="outline" className="gap-2 w-full sm:w-auto">
-            Bulk Update ({selectedOrders.length})
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-        )}
       </div>
 
       {/* Filters */}
@@ -294,19 +281,6 @@ const Orders = () => {
             <table className="w-full">
               <thead className="bg-card/50">
                 <tr>
-                  <th className="p-4 text-left text-sm font-medium text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      className="rounded border-border"
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedOrders(filteredOrders.map(o => o.id));
-                        } else {
-                          setSelectedOrders([]);
-                        }
-                      }}
-                    />
-                  </th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Order ID</th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Buyer</th>
                   <th className="p-4 text-left text-sm font-medium text-muted-foreground">Date</th>
@@ -329,14 +303,6 @@ const Orders = () => {
                       transition={{ delay: 0.05 * index }}
                       className="hover:bg-card/30 transition-colors"
                     >
-                      <td className="p-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order.id)}
-                          onChange={() => toggleSelect(order.id)}
-                          className="rounded border-border"
-                        />
-                      </td>
                       <td className="p-4">
                         <div>
                           <span className="font-mono text-sm">{order.order_number}</span>
@@ -410,19 +376,11 @@ const Orders = () => {
                   className="p-4 space-y-3 bg-card/20"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={selectedOrders.includes(order.id)}
-                        onChange={() => toggleSelect(order.id)}
-                        className="mt-1 rounded border-border"
-                      />
-                      <div className="min-w-0">
-                        <div className="font-mono text-sm truncate">{order.order_number}</div>
-                        {listing && (
-                          <div className="text-xs text-muted-foreground truncate">{listing.listing_code}</div>
-                        )}
-                      </div>
+                    <div className="min-w-0">
+                      <div className="font-mono text-sm truncate">{order.order_number}</div>
+                      {listing && (
+                        <div className="text-xs text-muted-foreground truncate">{listing.listing_code}</div>
+                      )}
                     </div>
                     <span className="font-semibold whitespace-nowrap">₹{order.total.toLocaleString()}</span>
                   </div>
