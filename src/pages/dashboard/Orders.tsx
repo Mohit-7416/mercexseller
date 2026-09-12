@@ -378,10 +378,9 @@ const Orders = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="font-mono text-sm truncate">{order.order_number}</div>
-                        {listing && (
-                          <div className="text-xs text-muted-foreground truncate">{listing.listing_code}</div>
-                        )}
-                      </div>
+                      {listing && (
+                        <div className="text-xs text-muted-foreground truncate">{listing.listing_code}</div>
+                      )}
                     </div>
                     <span className="font-semibold whitespace-nowrap">₹{order.total.toLocaleString()}</span>
                   </div>
