@@ -137,12 +137,6 @@ const Orders = () => {
             <p className="text-muted-foreground">Manage and track your customer orders</p>
           </div>
         </div>
-        {selectedOrders.length > 0 && (
-          <Button variant="outline" className="gap-2 w-full sm:w-auto">
-            Bulk Update ({selectedOrders.length})
-            <ChevronDown className="w-4 h-4" />
-          </Button>
-        )}
       </div>
 
       {/* Filters */}
