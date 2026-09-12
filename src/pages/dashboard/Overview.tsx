@@ -34,6 +34,7 @@ const Overview = () => {
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [purchasersListing, setPurchasersListing] = useState<Listing | null>(null);
   const [confirmStart, setConfirmStart] = useState<Listing | null>(null);
+  const [activeLimit, setActiveLimit] = useState(5);
 
   const [showCompleted, setShowCompleted] = useState(false);
   const [completedFrom, setCompletedFrom] = useState("");
@@ -242,7 +243,16 @@ const Overview = () => {
               </div>
             ) : (
               <div className="grid gap-3">
-                {activeVisible.map((listing, i) => renderListingRow(listing, i))}
+                {activeVisible.slice(0, activeLimit).map((listing, i) => renderListingRow(listing, i))}
+                {activeLimit < activeVisible.length && (
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-fit sm:justify-self-center mt-1"
+                    onClick={() => setActiveLimit(limit => limit + 5)}
+                  >
+                    Show more
+                  </Button>
+                )}
               </div>
             )}
           </motion.div>

@@ -138,7 +138,9 @@
      default color. Explicit Tailwind text-* utilities on the icon still
      override this because utilities layer wins over base. */
   .accent-icon { color: hsl(var(--primary)); }
-  svg.lucide { color: hsl(var(--primary)); }
+  html[class*="accent-"] svg.lucide:not(.preserve-icon-color) {
+    color: hsl(var(--primary)) !important;
+  }
 }
 
 @layer base {
