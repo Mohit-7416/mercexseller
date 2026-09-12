@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Search, Filter, MessageCircle, Calendar, ChevronDown, Package, Loader2, X } from "lucide-react";
+import { Search, Filter, MessageCircle, Calendar, Package, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
