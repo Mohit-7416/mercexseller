@@ -103,6 +103,23 @@ export const useListings = () => {
 
   const updateListing = async (id: string, listingData: Partial<Listing>) => {
     try {
+      if (listingData.status === 'live') {
+        if (!currentShop) throw new Error('No shop selected');
+        const { data: existingLive, error: liveCheckError } = await supabase
+          .from('listings')
+          .select('id, title')
+          .eq('shop_id', currentShop.id)
+          .eq('status', 'live')
+          .neq('id', id)
+          .limit(1)
+          .maybeSingle();
+
+        if (liveCheckError) throw liveCheckError;
+        if (existingLive) {
+          throw new Error(`Another listing is already live: ${existingLive.title}`);
+        }
+      }
+
       const { error } = await supabase
         .from('listings')
         .update(listingData)
