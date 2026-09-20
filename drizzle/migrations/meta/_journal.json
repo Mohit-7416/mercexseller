@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789917623210,
+      "tag": "0000_enforce_one_live_listing_per_shop",
+      "breakpoints": true
+    }
+  ]
+}

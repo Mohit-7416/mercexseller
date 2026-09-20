@@ -10,7 +10,6 @@ import { useMemo, useState } from "react";
 import { useOrders, Order, OrderStatus } from "@/hooks/useOrders";
 import { useListings } from "@/hooks/useListings";
 import { useCategories } from "@/hooks/useCategories";
-import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import OrderDetailsDialog from "@/components/orders/OrderDetailsDialog";
 import BackButton from "@/components/BackButton";
@@ -25,14 +24,12 @@ const statusColors: Record<OrderStatus, string> = {
 };
 
 const Orders = () => {
-  const { orders, loading, updateOrderStatus } = useOrders();
+  const { orders, loading } = useOrders();
   const { listings } = useListings();
   const { categories } = useCategories();
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [detailsOrder, setDetailsOrder] = useState<Order | null>(null);
 
   // Advanced filters
@@ -100,23 +97,6 @@ const Orders = () => {
       return true;
     });
   }, [orders, listings, searchTerm, fStatus, fType, fCategory, fMinAmt, fMaxAmt, fDateFrom, fDateTo, fCustName, fCustEmail, fItem]);
-
-  const handleStatusUpdate = async (id: string, status: OrderStatus) => {
-    setUpdatingStatus(id);
-    try {
-      const { error } = await updateOrderStatus(id, status);
-      if (error) throw error;
-      toast({ title: "Status updated", description: `Order status changed to ${status}.` });
-    } catch (error) {
-      toast({
-        title: "Error updating status",
-        description: error instanceof Error ? error.message : "An error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setUpdatingStatus(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -331,19 +311,9 @@ const Orders = () => {
                         </span>
                       </td>
                       <td className="p-4">
-                        <select
-                          value={order.status}
-                          onChange={(e) => handleStatusUpdate(order.id, e.target.value as OrderStatus)}
-                          disabled={updatingStatus === order.id}
-                          className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${statusColors[order.status]}`}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="processing">Processing</option>
-                          <option value="shipped">Shipped</option>
-                          <option value="delivered">Delivered</option>
-                          <option value="cancelled">Cancelled</option>
-                          <option value="refunded">Refunded</option>
-                        </select>
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium capitalize ${statusColors[order.status]}`}>
+                          {order.status}
+                        </span>
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
@@ -403,19 +373,9 @@ const Orders = () => {
                     }`}>
                       {isAuction ? '🔨 Auction' : '🛒 Sale'}
                     </span>
-                    <select
-                      value={order.status}
-                      onChange={(e) => handleStatusUpdate(order.id, e.target.value as OrderStatus)}
-                      disabled={updatingStatus === order.id}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${statusColors[order.status]}`}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="processing">Processing</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="refunded">Refunded</option>
-                    </select>
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium capitalize ${statusColors[order.status]}`}>
+                      {order.status}
+                    </span>
                     <div className="ml-auto flex items-center gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/dashboard/orders/chat?orderId=${order.id}`)}>
                         <MessageCircle className="w-4 h-4" />

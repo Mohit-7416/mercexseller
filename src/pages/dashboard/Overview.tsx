@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Package, Gavel, Clock, Play, Pause, Eye, Edit, TrendingUp, FileText, Calendar, Loader2, Users, ChevronDown } from "lucide-react";
+import { Package, Gavel, Clock, Play, Pause, Eye, Edit, TrendingUp, FileText, Calendar, Loader2, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +18,17 @@ import {
 import { format, parseISO } from "date-fns";
 import EditListingModal from "@/components/listings/EditListingModal";
 import BackButton from "@/components/BackButton";
+import { useToast } from "@/hooks/use-toast";
 
 const ACTIVE_STATUSES = new Set(["draft", "scheduled", "live"]);
 const COMPLETED_STATUSES = new Set(["completed", "cancelled"]);
 
 const Overview = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { profile } = useProfile();
   const { categories } = useCategories();
-  const { listings, activeListings, updateListing, loading: listingsLoading } = useListings();
+  const { listings, activeListings, liveListings, updateListing, loading: listingsLoading } = useListings();
   const { orders, pendingOrders, loading: ordersLoading } = useOrders();
   const { activeBids, loading: bidsLoading } = useBids();
 
@@ -67,7 +69,26 @@ const Overview = () => {
   ];
 
   const handleGoLive = async (listing: Listing) => {
-    await updateListing(listing.id, { status: "live", actual_start: new Date().toISOString() });
+    const otherLive = liveListings.find(live => live.id !== listing.id);
+    if (otherLive) {
+      toast({
+        title: "Another listing is already live",
+        description: `End “${otherLive.title}” before starting another listing.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const { error } = await updateListing(listing.id, { status: "live", actual_start: new Date().toISOString() });
+    if (error) {
+      toast({
+        title: "Could not start listing",
+        description: error.message.includes("one_live_listing_per_shop")
+          ? "Another listing is already live. End it before starting this one."
+          : error.message,
+        variant: "destructive",
+      });
+      return;
+    }
     navigate(`/dashboard/live/${listing.id}`);
   };
 
@@ -244,14 +265,21 @@ const Overview = () => {
             ) : (
               <div className="grid gap-3">
                 {activeVisible.slice(0, activeLimit).map((listing, i) => renderListingRow(listing, i))}
-                {activeLimit < activeVisible.length && (
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-fit sm:justify-self-center mt-1"
-                    onClick={() => setActiveLimit(limit => limit + 5)}
-                  >
-                    Show more
-                  </Button>
+                {(activeLimit < activeVisible.length || activeLimit > 5) && (
+                  <div className="flex flex-col-reverse sm:flex-row justify-center gap-2 mt-1">
+                    {activeLimit > 5 && (
+                      <Button variant="outline" onClick={() => setActiveLimit(5)}>
+                        <ChevronUp className="w-4 h-4" />
+                        Show less
+                      </Button>
+                    )}
+                    {activeLimit < activeVisible.length && (
+                      <Button variant="outline" onClick={() => setActiveLimit(limit => limit + 5)}>
+                        <ChevronDown className="w-4 h-4" />
+                        Show more
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             )}

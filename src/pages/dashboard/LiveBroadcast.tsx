@@ -26,10 +26,11 @@ interface ChatMsg {
 const LiveBroadcast = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { listings, updateListing } = useListings();
+  const { listings, updateListing, loading: listingsLoading } = useListings();
   const { profile } = useProfile();
   const { orders } = useOrders();
   const listing = listings.find(l => l.id === id);
+  const otherLiveListing = listings.find(l => l.status === "live" && l.id !== id);
   const isAuction = listing?.type === "auction";
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -73,7 +74,7 @@ const LiveBroadcast = () => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!id) return;
+      if (!id || listingsLoading || !listing || otherLiveListing) return;
       try {
         const { Room, RoomEvent, Track } = await import("livekit-client");
         const { data, error } = await supabase.functions.invoke("livekit-token", {
@@ -112,7 +113,7 @@ const LiveBroadcast = () => {
       roomRef.current?.disconnect();
       roomRef.current = null;
     };
-  }, [id, profile?.full_name]);
+  }, [id, listing?.id, listingsLoading, otherLiveListing?.id, profile?.full_name]);
 
   useEffect(() => {
     const i = setInterval(() => setElapsed(e => e + 1), 1000);
@@ -121,7 +122,7 @@ const LiveBroadcast = () => {
 
   // Realtime channel for chat + bids
   useEffect(() => {
-    if (!id) return;
+    if (!id || listingsLoading || !listing || otherLiveListing) return;
     const channel = supabase.channel(`live:${id}`, {
       config: { presence: { key: profile?.id || "seller" } },
     });
@@ -172,14 +173,32 @@ const LiveBroadcast = () => {
       channel.unsubscribe();
       supabase.removeChannel(channel);
     };
-  }, [id, profile?.id, profile?.full_name]);
+  }, [id, listing?.id, listingsLoading, otherLiveListing?.id, profile?.id, profile?.full_name]);
 
   useEffect(() => {
-    if (listing && listing.status !== "live") {
-      updateListing(listing.id, { status: "live", actual_start: new Date().toISOString() });
+    if (listingsLoading || !listing) return;
+    if (otherLiveListing) {
+      toast({
+        title: "Another listing is already live",
+        description: `End “${otherLiveListing.title}” before starting this listing.`,
+        variant: "destructive",
+      });
+      navigate("/dashboard");
+      return;
+    }
+    if (listing.status !== "live") {
+      void updateListing(listing.id, { status: "live", actual_start: new Date().toISOString() }).then(({ error }) => {
+        if (!error) return;
+        toast({
+          title: "Could not start listing",
+          description: "Another listing is already live. End it before starting this one.",
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listing?.id]);
+  }, [listing?.id, listing?.status, listingsLoading, otherLiveListing?.id, navigate]);
 
   const toggleCam = async () => {
     const lp = roomRef.current?.localParticipant;

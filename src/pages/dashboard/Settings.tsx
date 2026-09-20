@@ -228,8 +228,8 @@ const Settings = () => {
         {activeTab === "personal" && (
           <div className="space-y-4">
             {/* Overall rating */}
-            <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
-              <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
+              <div className="min-w-0">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall rating</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-2xl font-bold text-primary">{reviewStats.average.toFixed(1)}</span>
@@ -241,7 +241,7 @@ const Settings = () => {
                   <span className="text-xs text-muted-foreground">({reviewStats.total} review{reviewStats.total === 1 ? '' : 's'})</span>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/reviews')}>View reviews</Button>
+              <Button variant="outline" size="sm" className="w-full sm:w-auto shrink-0" onClick={() => navigate('/dashboard/reviews')}>View reviews</Button>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">

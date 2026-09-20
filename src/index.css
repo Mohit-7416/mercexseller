@@ -139,6 +139,12 @@ html[class*="accent-"] svg.lucide:not(.preserve-icon-color) {
   color: hsl(var(--primary)) !important;
 }
 
+/* Icons inside controls follow the control foreground so filled accent buttons stay legible. */
+html[class*="accent-"] button svg.lucide,
+html[class*="accent-"] .button-icon-current svg.lucide {
+  color: currentColor !important;
+}
+
 @layer base {
   * {
     @apply border-border;

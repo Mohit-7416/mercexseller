@@ -4,49 +4,70 @@ import { useState, useMemo } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { useOrders } from "@/hooks/useOrders";
 import { useListings } from "@/hooks/useListings";
-import { format, subDays, startOfDay, parseISO, isWithinInterval } from "date-fns";
+import {
+  addDays, addMonths, differenceInCalendarDays, endOfDay, endOfMonth, endOfWeek, endOfYear,
+  format, isWithinInterval, parseISO, startOfDay, startOfMonth, startOfWeek, startOfYear,
+} from "date-fns";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BackButton from "@/components/BackButton";
 
 type ViewType = "auctions" | "sales" | "all";
-type TimeRange = "7days" | "30days" | "90days";
+type Period = "day" | "week" | "month" | "year";
+
+const getPresetRange = (period: Period) => {
+  const now = new Date();
+  if (period === "day") return { start: startOfDay(now), end: endOfDay(now) };
+  if (period === "week") return { start: startOfWeek(now, { weekStartsOn: 1 }), end: endOfWeek(now, { weekStartsOn: 1 }) };
+  if (period === "month") return { start: startOfMonth(now), end: endOfMonth(now) };
+  return { start: startOfYear(now), end: endOfYear(now) };
+};
 
 const Analysis = () => {
   const { orders, loading: ordersLoading } = useOrders();
   const { listings, loading: listingsLoading } = useListings();
   
   const [viewType, setViewType] = useState<ViewType>("all");
-  const [timeRange, setTimeRange] = useState<TimeRange>("7days");
+  const initialRange = getPresetRange("week");
+  const [period, setPeriod] = useState<Period>("week");
+  const [dateFrom, setDateFrom] = useState(format(initialRange.start, "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState(format(initialRange.end, "yyyy-MM-dd"));
 
   const loading = ordersLoading || listingsLoading;
 
-  // Get date range based on selected time range
-  const getDateRange = () => {
-    const end = new Date();
-    const days = timeRange === "7days" ? 7 : timeRange === "30days" ? 30 : 90;
-    const start = subDays(end, days);
-    return { start, end, days };
+  const handlePeriodChange = (nextPeriod: Period) => {
+    const range = getPresetRange(nextPeriod);
+    setPeriod(nextPeriod);
+    setDateFrom(format(range.start, "yyyy-MM-dd"));
+    setDateTo(format(range.end, "yyyy-MM-dd"));
   };
 
   // Process order data for charts
   const { revenueData, itemsSoldData, stats } = useMemo(() => {
-    const { end, days } = getDateRange();
-
-    const start = subDays(end, days);
+    const start = startOfDay(parseISO(dateFrom));
+    const end = endOfDay(parseISO(dateTo));
+    const safeEnd = end < start ? endOfDay(start) : end;
     const filteredOrders = orders.filter(order => {
       const orderDate = parseISO(order.created_at);
-      return isWithinInterval(orderDate, { start, end });
+      return isWithinInterval(orderDate, { start, end: safeEnd });
     });
 
     const dateMap = new Map<string, { auctions: number; sales: number; count: number }>();
-    for (let i = 0; i < Math.min(days, 7); i++) {
-      const date = subDays(end, i);
-      const dateKey = format(date, "EEE");
-      dateMap.set(dateKey, { auctions: 0, sales: 0, count: 0 });
+    const useMonthlyBuckets = differenceInCalendarDays(safeEnd, start) > 62;
+    if (useMonthlyBuckets) {
+      for (let date = startOfMonth(start); date <= safeEnd; date = addMonths(date, 1)) {
+        dateMap.set(format(date, "yyyy-MM"), { auctions: 0, sales: 0, count: 0 });
+      }
+    } else {
+      for (let date = start; date <= safeEnd; date = addDays(date, 1)) {
+        dateMap.set(format(date, "yyyy-MM-dd"), { auctions: 0, sales: 0, count: 0 });
+      }
     }
 
     filteredOrders.forEach(order => {
-      const dateKey = format(parseISO(order.created_at), "EEE");
+      const dateKey = format(parseISO(order.created_at), useMonthlyBuckets ? "yyyy-MM" : "yyyy-MM-dd");
       const current = dateMap.get(dateKey) || { auctions: 0, sales: 0, count: 0 };
       const listing = listings.find(l => l.id === order.listing_id);
       const isAuction = listing?.type === "auction";
@@ -57,8 +78,11 @@ const Analysis = () => {
       });
     });
 
-    const revenueData = Array.from(dateMap.entries()).map(([name, data]) => ({ name, ...data })).reverse();
-    const itemsSoldData = Array.from(dateMap.entries()).map(([name, data]) => ({ name, count: data.count })).reverse();
+    const revenueData = Array.from(dateMap.entries()).map(([key, data]) => ({
+      name: format(parseISO(useMonthlyBuckets ? `${key}-01` : key), useMonthlyBuckets ? "MMM yyyy" : "dd MMM"),
+      ...data,
+    }));
+    const itemsSoldData = revenueData.map(({ name, count }) => ({ name, count }));
 
     const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total, 0);
     const auctionRevenue = filteredOrders.reduce((sum, o) => {
@@ -76,7 +100,7 @@ const Analysis = () => {
         totalItems: filteredOrders.length,
       },
     };
-  }, [orders, listings, timeRange]);
+  }, [orders, listings, dateFrom, dateTo]);
 
 
   if (loading) {
@@ -101,23 +125,28 @@ const Analysis = () => {
           </div>
         </div>
 
-        {/* View Type Selector */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1 sm:gap-2 p-1 rounded-lg bg-card/50 border border-border/50 w-full sm:w-auto">
-            {(["7days", "30days", "90days"] as TimeRange[]).map((range) => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                  timeRange === range
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {range === "7days" ? "7 Days" : range === "30days" ? "30 Days" : "90 Days"}
-              </button>
-            ))}
-          </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-card/40 border border-border/50">
+        <div className="space-y-1.5">
+          <Label htmlFor="analysis-period">Period</Label>
+          <Select value={period} onValueChange={(value) => handlePeriodChange(value as Period)}>
+            <SelectTrigger id="analysis-period"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Day</SelectItem>
+              <SelectItem value="week">Week</SelectItem>
+              <SelectItem value="month">Month</SelectItem>
+              <SelectItem value="year">Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="analysis-from">From</Label>
+          <Input id="analysis-from" type="date" value={dateFrom} max={dateTo} onChange={(event) => setDateFrom(event.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="analysis-to">To</Label>
+          <Input id="analysis-to" type="date" value={dateTo} min={dateFrom} onChange={(event) => setDateTo(event.target.value)} />
         </div>
       </div>
 
