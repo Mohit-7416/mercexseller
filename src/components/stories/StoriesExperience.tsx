@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bookmark, Camera, ChevronLeft, ChevronRight, CirclePlus, Eye, Loader2, MessageCircle, Play, Send, Share2, Trash2, Video, X } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, CirclePlus, Eye, Loader2, MessageCircle, Play, Send, Share2, Trash2, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -35,16 +35,22 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
   const { currentShop } = useShop();
   const { toast } = useToast();
   const [stories, setStories] = useState<Story[]>([]);
+  const [seenStoryIds, setSeenStoryIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [caption, setCaption] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [progress, setProgress] = useState(0);
   const [viewCount, setViewCount] = useState(0);
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
   const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replies, setReplies] = useState<Array<{ id: string; sender_id: string; message: string; created_at: string }>>([]);
+  const [replying, setReplying] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refreshStories = useCallback(async () => {
@@ -57,9 +63,18 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       console.error("Could not load stories:", error);
     } else {
       setStories((data || []) as Story[]);
+      if (user) {
+        const { data: views, error: viewsError } = await supabase
+          .from("story_views")
+          .select("story_id")
+          .eq("viewer_id", user.id);
+        if (!viewsError) setSeenStoryIds(new Set((views || []).map((view) => view.story_id)));
+      } else {
+        setSeenStoryIds(new Set());
+      }
     }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     void refreshStories();
@@ -80,8 +95,8 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       grouped.set(story.shop_id, group);
     });
     return Array.from(grouped.values()).sort((a, b) => {
-      const latestA = a.stories.at(-1)?.created_at ?? "";
-      const latestB = b.stories.at(-1)?.created_at ?? "";
+      const latestA = a.stories[a.stories.length - 1]?.created_at ?? "";
+      const latestB = b.stories[b.stories.length - 1]?.created_at ?? "";
       return latestB.localeCompare(latestA);
     });
   }, [stories]);
@@ -106,6 +121,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
         { onConflict: "story_id,viewer_id", ignoreDuplicates: true },
       );
       if (error) console.error("Could not mark story viewed:", error);
+      else setSeenStoryIds((previous) => new Set(previous).add(story.id));
     }
     const { data } = await supabase.rpc("get_story_metrics", { _story_id: story.id });
     const metrics = Array.isArray(data) ? data[0] : data;
@@ -161,6 +177,27 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
     return () => window.clearInterval(timer);
   }, [activeStory, goNext]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setReplies([]);
+    setReplyText("");
+    setShowReplies(false);
+    if (!activeStory || !user) return;
+    supabase.from("story_replies")
+      .select("id, sender_id, message, created_at")
+      .eq("story_id", activeStory.id)
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("Could not load story replies:", error);
+          return;
+        }
+        setReplies(data || []);
+      });
+    return () => { cancelled = true; };
+  }, [activeStory, user]);
+
   const handleCreate = async () => {
     if (!currentShop || !user || !selectedFile) return;
     setUploading(true);
@@ -186,6 +223,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       toast({ title: "Story shared", description: "It will be visible for 24 hours." });
       setCreateOpen(false);
       setSelectedFile(null);
+      setSelectedPreview(null);
       setCaption("");
       await refreshStories();
     } catch (error) {
@@ -228,6 +266,30 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
     setMyReaction(emoji);
   };
 
+  const sendReply = async () => {
+    if (!activeStory || !user || !replyText.trim()) return;
+    if (user.id === activeStory.owner_id) {
+      toast({ title: "This is your story", description: "Sellers can read replies from viewers here." });
+      return;
+    }
+    setReplying(true);
+    const message = replyText.trim();
+    const { data, error } = await supabase.from("story_replies").insert({
+      story_id: activeStory.id,
+      sender_id: user.id,
+      message,
+    }).select("id, sender_id, message, created_at").single();
+    setReplying(false);
+    if (error) {
+      toast({ title: "Could not send reply", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (data) setReplies((previous) => [...previous, data]);
+    setReplyText("");
+    setShowReplies(true);
+    toast({ title: "Reply sent", description: "The seller can read your message." });
+  };
+
   const deleteStory = async () => {
     if (!activeStory || !isOwner) return;
     const storagePath = activeStory.media_url.split("/object/public/item-images/")[1];
@@ -268,8 +330,14 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       toast({ title: "File is too large", description: "Stories must be under 50 MB.", variant: "destructive" });
       return;
     }
+    if (selectedPreview) URL.revokeObjectURL(selectedPreview);
     setSelectedFile(file);
+    setSelectedPreview(URL.createObjectURL(file));
   };
+
+  useEffect(() => () => {
+    if (selectedPreview) URL.revokeObjectURL(selectedPreview);
+  }, [selectedPreview]);
 
   return (
     <section className={fullPage ? "mx-auto w-full max-w-5xl px-4 py-8 sm:px-8" : "min-w-0 max-w-full"} aria-label="Stories">
@@ -301,15 +369,16 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
         {!loading && groups.map((group) => {
           const ownGroup = group.stories.some((story) => story.owner_id === user?.id);
           const cover = group.stories[group.stories.length - 1];
+          const groupSeen = group.stories.every((story) => seenStoryIds.has(story.id));
           return (
             <button
               key={group.shopId}
               type="button"
-              onClick={() => void showStory(group.stories[0])}
+              onClick={() => void showStory(group.stories.find((story) => !seenStoryIds.has(story.id)) || group.stories[0])}
               className={`flex ${fullPage ? "w-full" : "w-16 shrink-0"} flex-col items-center gap-1.5 text-center`}
               aria-label={`View ${group.shopName} stories`}
             >
-              <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] ${ownGroup ? "border-2 border-muted-foreground/40" : "bg-gradient-to-tr from-secondary via-primary to-primary"}`}>
+              <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] ${ownGroup || groupSeen ? "border-2 border-muted-foreground/40" : "bg-gradient-to-tr from-secondary via-primary to-primary"}`}>
                 <span className="grid h-full w-full place-items-center overflow-hidden rounded-full border-2 border-background bg-card text-sm font-semibold">
                   {cover.media_type.startsWith("video/") ? <Video className="h-5 w-5" /> : <img src={cover.media_url} alt="" className="h-full w-full object-cover" />}
                 </span>
@@ -336,9 +405,9 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
             {selectedFile?.type.startsWith("video/") ? <Video className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
             {selectedFile?.name || "Choose a photo or video"}
           </Button>
-          {selectedFile && (
+          {selectedFile && selectedPreview && (
             <div className="overflow-hidden rounded-md border border-border bg-muted/20">
-              {selectedFile.type.startsWith("video/") ? <video src={URL.createObjectURL(selectedFile)} controls className="max-h-56 w-full object-contain" /> : <img src={URL.createObjectURL(selectedFile)} alt="Story preview" className="max-h-56 w-full object-contain" />}
+              {selectedFile.type.startsWith("video/") ? <video src={selectedPreview} controls className="max-h-56 w-full object-contain" /> : <img src={selectedPreview} alt="Story preview" className="max-h-56 w-full object-contain" />}
             </div>
           )}
           <Input value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="Add a caption" maxLength={240} />
@@ -357,12 +426,12 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
               <div className="absolute left-3 right-3 top-3 z-20 flex gap-1">
                 {currentGroup?.stories.map((story) => (
                   <span key={story.id} className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/30">
-                    <span className="block h-full bg-foreground" style={{ width: story.id === activeStory.id ? `${progress}%` : story.id === activeStory.id || (currentStoryIndex >= 0 && currentGroup.stories.findIndex((item) => item.id === story.id) < currentStoryIndex) ? "100%" : "0%" }} />
+                    <span className="block h-full bg-foreground" style={{ width: story.id === activeStory.id ? `${progress}%` : currentGroup.stories.findIndex((item) => item.id === story.id) < currentStoryIndex ? "100%" : "0%" }} />
                   </span>
                 ))}
               </div>
               <div className="absolute left-4 right-10 top-7 z-20 flex items-center gap-2 text-primary-foreground drop-shadow-md">
-                <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary-foreground/70 bg-background/30 text-sm font-semibold">
+                  <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary-foreground/70 bg-background/30 text-sm font-semibold">
                   {currentGroup?.shopName.slice(0, 1).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -375,7 +444,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
               </div>
               <div className="absolute inset-0 grid place-items-center bg-foreground/90">
                 {activeStory.media_type.startsWith("video/") ? (
-                  <video src={activeStory.media_url} autoPlay playsInline onEnded={goNext} onTimeUpdate={(event) => {
+                  <video src={activeStory.media_url} autoPlay muted controls playsInline onEnded={goNext} onTimeUpdate={(event) => {
                     const video = event.currentTarget;
                     if (Number.isFinite(video.duration) && video.duration > 0) setProgress((video.currentTime / video.duration) * 100);
                   }} className="h-full w-full object-contain" />
@@ -387,19 +456,43 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
               <Button variant="ghost" size="icon" onClick={goNext} className="absolute right-1 top-1/2 z-20 -translate-y-1/2 text-primary-foreground" aria-label="Next story"><ChevronRight /></Button>
               <div className="absolute inset-x-0 bottom-0 z-20 space-y-3 bg-gradient-to-t from-background/95 via-background/70 to-transparent px-4 pb-4 pt-14 text-foreground">
                 {activeStory.caption && <p className="text-sm leading-relaxed">{activeStory.caption}</p>}
+                {isOwner && replies.length > 0 && (
+                  <div className="space-y-2">
+                    <Button variant="ghost" size="sm" className="h-7 px-0 text-xs" onClick={() => setShowReplies((shown) => !shown)}>
+                      <MessageCircle className="mr-1.5 h-3.5 w-3.5" />Replies ({replies.length})
+                    </Button>
+                    {showReplies && <div className="max-h-24 space-y-1 overflow-y-auto rounded-md bg-background/50 p-2">
+                      {replies.map((reply) => <p key={reply.id} className="text-xs"><span className="font-medium">Viewer</span><span className="ml-2 text-muted-foreground">{reply.message}</span></p>)}
+                    </div>}
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-2">
                   {isOwner ? (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-4 w-4" />{viewCount} views</span>
                   ) : <span className="text-xs text-muted-foreground">React to this story</span>}
-                  <div className="flex items-center gap-1">
-                    {REACTIONS.map((emoji) => (
-                      <Button key={emoji} type="button" variant={myReaction === emoji ? "secondary" : "ghost"} size="sm" className="h-9 min-w-9 px-2" onClick={() => void handleReaction(emoji)} aria-label={`React ${emoji}`}>
-                        <span>{emoji}</span>{(reactionCounts[emoji] || 0) > 0 && <span className="ml-1 text-[10px]">{reactionCounts[emoji]}</span>}
-                      </Button>
-                    ))}
-                  </div>
+                  {isOwner ? (
+                    <div className="flex items-center gap-2 text-xs" aria-label="Story reactions">
+                      {REACTIONS.filter((emoji) => (reactionCounts[emoji] || 0) > 0).map((emoji) => (
+                        <span key={emoji}>{emoji} {reactionCounts[emoji]}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      {REACTIONS.map((emoji) => (
+                        <Button key={emoji} type="button" variant={myReaction === emoji ? "secondary" : "ghost"} size="sm" className="h-9 min-w-9 px-2" onClick={() => void handleReaction(emoji)} aria-label={`React ${emoji}`}>
+                          <span>{emoji}</span>{(reactionCounts[emoji] || 0) > 0 && <span className="ml-1 text-[10px]">{reactionCounts[emoji]}</span>}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {!isOwner && user && <div className="flex items-center gap-1 text-[11px] text-muted-foreground"><MessageCircle className="h-3 w-3" />Your reaction is visible to the seller.</div>}
+                {!isOwner && <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); void sendReply(); }}>
+                  <Input value={replyText} onChange={(event) => setReplyText(event.target.value)} placeholder={user ? "Reply to seller…" : "Sign in to reply"} disabled={!user || replying} maxLength={500} className="h-9 rounded-full border-foreground/20 bg-background/40 text-sm" />
+                  <Button type="submit" variant="secondary" size="icon" className="h-9 w-9 shrink-0 rounded-full" disabled={!user || !replyText.trim() || replying} aria-label="Send story reply">
+                    {replying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </form>}
+                {!user && !isOwner && <Link to="/auth" className="text-xs text-primary underline underline-offset-2">Sign in to reply or react</Link>}
               </div>
             </div>
           )}

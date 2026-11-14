@@ -23,6 +23,7 @@ import Settings from "./pages/dashboard/Settings";
 import LiveBroadcast from "./pages/dashboard/LiveBroadcast";
 import Reviews from "./pages/dashboard/Reviews";
 import NotFound from "./pages/NotFound";
+import StoriesExperience from "./components/stories/StoriesExperience";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ function App() {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Landing />} />
+                <Route path="/stories" element={<StoriesExperience fullPage />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/onboarding/how-it-works" element={<HowItWorks />} />
                 <Route path="/onboarding/terms" element={<Terms />} />
