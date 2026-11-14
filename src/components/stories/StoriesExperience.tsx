@@ -45,6 +45,10 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
   const [viewCount, setViewCount] = useState(0);
   const [reactionCounts, setReactionCounts] = useState<Record<string, number>>({});
   const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [replies, setReplies] = useState<Array<{ id: string; sender_id: string; message: string; created_at: string }>>([]);
+  const [replying, setReplying] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refreshStories = useCallback(async () => {
@@ -161,6 +165,27 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
     return () => window.clearInterval(timer);
   }, [activeStory, goNext]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setReplies([]);
+    setReplyText("");
+    setShowReplies(false);
+    if (!activeStory || !user) return;
+    supabase.from("story_replies")
+      .select("id, sender_id, message, created_at")
+      .eq("story_id", activeStory.id)
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("Could not load story replies:", error);
+          return;
+        }
+        setReplies(data || []);
+      });
+    return () => { cancelled = true; };
+  }, [activeStory, user]);
+
   const handleCreate = async () => {
     if (!currentShop || !user || !selectedFile) return;
     setUploading(true);
@@ -226,6 +251,30 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       return next;
     });
     setMyReaction(emoji);
+  };
+
+  const sendReply = async () => {
+    if (!activeStory || !user || !replyText.trim()) return;
+    if (user.id === activeStory.owner_id) {
+      toast({ title: "This is your story", description: "Sellers can read replies from viewers here." });
+      return;
+    }
+    setReplying(true);
+    const message = replyText.trim();
+    const { data, error } = await supabase.from("story_replies").insert({
+      story_id: activeStory.id,
+      sender_id: user.id,
+      message,
+    }).select("id, sender_id, message, created_at").single();
+    setReplying(false);
+    if (error) {
+      toast({ title: "Could not send reply", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (data) setReplies((previous) => [...previous, data]);
+    setReplyText("");
+    setShowReplies(true);
+    toast({ title: "Reply sent", description: "The seller can read your message." });
   };
 
   const deleteStory = async () => {
@@ -387,6 +436,16 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
               <Button variant="ghost" size="icon" onClick={goNext} className="absolute right-1 top-1/2 z-20 -translate-y-1/2 text-primary-foreground" aria-label="Next story"><ChevronRight /></Button>
               <div className="absolute inset-x-0 bottom-0 z-20 space-y-3 bg-gradient-to-t from-background/95 via-background/70 to-transparent px-4 pb-4 pt-14 text-foreground">
                 {activeStory.caption && <p className="text-sm leading-relaxed">{activeStory.caption}</p>}
+                {isOwner && replies.length > 0 && (
+                  <div className="space-y-2">
+                    <Button variant="ghost" size="sm" className="h-7 px-0 text-xs" onClick={() => setShowReplies((shown) => !shown)}>
+                      <MessageCircle className="mr-1.5 h-3.5 w-3.5" />Replies ({replies.length})
+                    </Button>
+                    {showReplies && <div className="max-h-24 space-y-1 overflow-y-auto rounded-md bg-background/50 p-2">
+                      {replies.map((reply) => <p key={reply.id} className="text-xs"><span className="font-medium">Viewer</span><span className="ml-2 text-muted-foreground">{reply.message}</span></p>)}
+                    </div>}
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-2">
                   {isOwner ? (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-4 w-4" />{viewCount} views</span>
@@ -399,7 +458,13 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
                     ))}
                   </div>
                 </div>
-                {!isOwner && user && <div className="flex items-center gap-1 text-[11px] text-muted-foreground"><MessageCircle className="h-3 w-3" />Your reaction is visible to the seller.</div>}
+                {!isOwner && <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); void sendReply(); }}>
+                  <Input value={replyText} onChange={(event) => setReplyText(event.target.value)} placeholder={user ? "Reply to seller…" : "Sign in to reply"} disabled={!user || replying} maxLength={500} className="h-9 rounded-full border-foreground/20 bg-background/40 text-sm" />
+                  <Button type="submit" variant="secondary" size="icon" className="h-9 w-9 shrink-0 rounded-full" disabled={!user || !replyText.trim() || replying} aria-label="Send story reply">
+                    {replying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </form>}
+                {!user && !isOwner && <Link to="/auth" className="text-xs text-primary underline underline-offset-2">Sign in to reply or react</Link>}
               </div>
             </div>
           )}

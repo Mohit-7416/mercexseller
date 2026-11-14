@@ -19,6 +19,7 @@ import { format, parseISO } from "date-fns";
 import EditListingModal from "@/components/listings/EditListingModal";
 import BackButton from "@/components/BackButton";
 import { useToast } from "@/hooks/use-toast";
+import StoriesExperience from "@/components/stories/StoriesExperience";
 
 const ACTIVE_STATUSES = new Set(["draft", "scheduled", "live"]);
 const COMPLETED_STATUSES = new Set(["completed", "cancelled"]);
@@ -211,9 +212,14 @@ const Overview = () => {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, {firstName}! 👋</h1>
-        <p className="text-muted-foreground">Here's what's happening with your store today.</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, {firstName}! 👋</h1>
+          <p className="text-muted-foreground">Here's what's happening with your store today.</p>
+        </div>
+        <div className="w-full min-w-0 sm:w-auto sm:max-w-[220px]">
+          <StoriesExperience />
+        </div>
       </div>
 
       {loading ? (
