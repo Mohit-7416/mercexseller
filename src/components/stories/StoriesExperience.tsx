@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bookmark, Camera, ChevronLeft, ChevronRight, CirclePlus, Eye, Loader2, MessageCircle, Play, Send, Share2, Trash2, Video, X } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, CirclePlus, Eye, Loader2, MessageCircle, Play, Send, Share2, Trash2, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -35,10 +35,12 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
   const { currentShop } = useShop();
   const { toast } = useToast();
   const [stories, setStories] = useState<Story[]>([]);
+  const [seenStoryIds, setSeenStoryIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [caption, setCaption] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [activeStory, setActiveStory] = useState<Story | null>(null);
   const [progress, setProgress] = useState(0);
@@ -61,9 +63,18 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       console.error("Could not load stories:", error);
     } else {
       setStories((data || []) as Story[]);
+      if (user) {
+        const { data: views, error: viewsError } = await supabase
+          .from("story_views")
+          .select("story_id")
+          .eq("viewer_id", user.id);
+        if (!viewsError) setSeenStoryIds(new Set((views || []).map((view) => view.story_id)));
+      } else {
+        setSeenStoryIds(new Set());
+      }
     }
     setLoading(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     void refreshStories();
@@ -84,8 +95,8 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       grouped.set(story.shop_id, group);
     });
     return Array.from(grouped.values()).sort((a, b) => {
-      const latestA = a.stories.at(-1)?.created_at ?? "";
-      const latestB = b.stories.at(-1)?.created_at ?? "";
+      const latestA = a.stories[a.stories.length - 1]?.created_at ?? "";
+      const latestB = b.stories[b.stories.length - 1]?.created_at ?? "";
       return latestB.localeCompare(latestA);
     });
   }, [stories]);
@@ -110,6 +121,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
         { onConflict: "story_id,viewer_id", ignoreDuplicates: true },
       );
       if (error) console.error("Could not mark story viewed:", error);
+      else setSeenStoryIds((previous) => new Set(previous).add(story.id));
     }
     const { data } = await supabase.rpc("get_story_metrics", { _story_id: story.id });
     const metrics = Array.isArray(data) ? data[0] : data;
@@ -211,6 +223,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       toast({ title: "Story shared", description: "It will be visible for 24 hours." });
       setCreateOpen(false);
       setSelectedFile(null);
+      setSelectedPreview(null);
       setCaption("");
       await refreshStories();
     } catch (error) {
@@ -317,8 +330,14 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       toast({ title: "File is too large", description: "Stories must be under 50 MB.", variant: "destructive" });
       return;
     }
+    if (selectedPreview) URL.revokeObjectURL(selectedPreview);
     setSelectedFile(file);
+    setSelectedPreview(URL.createObjectURL(file));
   };
+
+  useEffect(() => () => {
+    if (selectedPreview) URL.revokeObjectURL(selectedPreview);
+  }, [selectedPreview]);
 
   return (
     <section className={fullPage ? "mx-auto w-full max-w-5xl px-4 py-8 sm:px-8" : "min-w-0 max-w-full"} aria-label="Stories">
@@ -350,15 +369,16 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
         {!loading && groups.map((group) => {
           const ownGroup = group.stories.some((story) => story.owner_id === user?.id);
           const cover = group.stories[group.stories.length - 1];
+          const groupSeen = group.stories.every((story) => seenStoryIds.has(story.id));
           return (
             <button
               key={group.shopId}
               type="button"
-              onClick={() => void showStory(group.stories[0])}
+              onClick={() => void showStory(group.stories.find((story) => !seenStoryIds.has(story.id)) || group.stories[0])}
               className={`flex ${fullPage ? "w-full" : "w-16 shrink-0"} flex-col items-center gap-1.5 text-center`}
               aria-label={`View ${group.shopName} stories`}
             >
-              <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] ${ownGroup ? "border-2 border-muted-foreground/40" : "bg-gradient-to-tr from-secondary via-primary to-primary"}`}>
+              <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-full p-[3px] ${ownGroup || groupSeen ? "border-2 border-muted-foreground/40" : "bg-gradient-to-tr from-secondary via-primary to-primary"}`}>
                 <span className="grid h-full w-full place-items-center overflow-hidden rounded-full border-2 border-background bg-card text-sm font-semibold">
                   {cover.media_type.startsWith("video/") ? <Video className="h-5 w-5" /> : <img src={cover.media_url} alt="" className="h-full w-full object-cover" />}
                 </span>
@@ -385,9 +405,9 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
             {selectedFile?.type.startsWith("video/") ? <Video className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
             {selectedFile?.name || "Choose a photo or video"}
           </Button>
-          {selectedFile && (
+          {selectedFile && selectedPreview && (
             <div className="overflow-hidden rounded-md border border-border bg-muted/20">
-              {selectedFile.type.startsWith("video/") ? <video src={URL.createObjectURL(selectedFile)} controls className="max-h-56 w-full object-contain" /> : <img src={URL.createObjectURL(selectedFile)} alt="Story preview" className="max-h-56 w-full object-contain" />}
+              {selectedFile.type.startsWith("video/") ? <video src={selectedPreview} controls className="max-h-56 w-full object-contain" /> : <img src={selectedPreview} alt="Story preview" className="max-h-56 w-full object-contain" />}
             </div>
           )}
           <Input value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="Add a caption" maxLength={240} />
@@ -406,7 +426,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
               <div className="absolute left-3 right-3 top-3 z-20 flex gap-1">
                 {currentGroup?.stories.map((story) => (
                   <span key={story.id} className="h-1 flex-1 overflow-hidden rounded-full bg-foreground/30">
-                    <span className="block h-full bg-foreground" style={{ width: story.id === activeStory.id ? `${progress}%` : story.id === activeStory.id || (currentStoryIndex >= 0 && currentGroup.stories.findIndex((item) => item.id === story.id) < currentStoryIndex) ? "100%" : "0%" }} />
+                    <span className="block h-full bg-foreground" style={{ width: story.id === activeStory.id ? `${progress}%` : currentGroup.stories.findIndex((item) => item.id === story.id) < currentStoryIndex ? "100%" : "0%" }} />
                   </span>
                 ))}
               </div>
@@ -450,13 +470,13 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
                   {isOwner ? (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-4 w-4" />{viewCount} views</span>
                   ) : <span className="text-xs text-muted-foreground">React to this story</span>}
-                  <div className="flex items-center gap-1">
+                  {!isOwner && <div className="flex items-center gap-1">
                     {REACTIONS.map((emoji) => (
                       <Button key={emoji} type="button" variant={myReaction === emoji ? "secondary" : "ghost"} size="sm" className="h-9 min-w-9 px-2" onClick={() => void handleReaction(emoji)} aria-label={`React ${emoji}`}>
                         <span>{emoji}</span>{(reactionCounts[emoji] || 0) > 0 && <span className="ml-1 text-[10px]">{reactionCounts[emoji]}</span>}
                       </Button>
                     ))}
-                  </div>
+                  </div>}
                 </div>
                 {!isOwner && <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); void sendReply(); }}>
                   <Input value={replyText} onChange={(event) => setReplyText(event.target.value)} placeholder={user ? "Reply to seller…" : "Sign in to reply"} disabled={!user || replying} maxLength={500} className="h-9 rounded-full border-foreground/20 bg-background/40 text-sm" />
