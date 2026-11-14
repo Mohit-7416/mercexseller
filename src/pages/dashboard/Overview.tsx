@@ -212,12 +212,12 @@ const Overview = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, {firstName}! 👋</h1>
           <p className="text-muted-foreground">Here's what's happening with your store today.</p>
         </div>
-        <div className="w-full min-w-0 sm:w-auto sm:max-w-[220px]">
+        <div className="w-full min-w-0 lg:w-auto lg:max-w-[220px]">
           <StoriesExperience />
         </div>
       </div>

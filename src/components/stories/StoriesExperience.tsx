@@ -470,13 +470,21 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
                   {isOwner ? (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="h-4 w-4" />{viewCount} views</span>
                   ) : <span className="text-xs text-muted-foreground">React to this story</span>}
-                  {!isOwner && <div className="flex items-center gap-1">
-                    {REACTIONS.map((emoji) => (
-                      <Button key={emoji} type="button" variant={myReaction === emoji ? "secondary" : "ghost"} size="sm" className="h-9 min-w-9 px-2" onClick={() => void handleReaction(emoji)} aria-label={`React ${emoji}`}>
-                        <span>{emoji}</span>{(reactionCounts[emoji] || 0) > 0 && <span className="ml-1 text-[10px]">{reactionCounts[emoji]}</span>}
-                      </Button>
-                    ))}
-                  </div>}
+                  {isOwner ? (
+                    <div className="flex items-center gap-2 text-xs" aria-label="Story reactions">
+                      {REACTIONS.filter((emoji) => (reactionCounts[emoji] || 0) > 0).map((emoji) => (
+                        <span key={emoji}>{emoji} {reactionCounts[emoji]}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      {REACTIONS.map((emoji) => (
+                        <Button key={emoji} type="button" variant={myReaction === emoji ? "secondary" : "ghost"} size="sm" className="h-9 min-w-9 px-2" onClick={() => void handleReaction(emoji)} aria-label={`React ${emoji}`}>
+                          <span>{emoji}</span>{(reactionCounts[emoji] || 0) > 0 && <span className="ml-1 text-[10px]">{reactionCounts[emoji]}</span>}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {!isOwner && <form className="flex items-center gap-2" onSubmit={(event) => { event.preventDefault(); void sendReply(); }}>
                   <Input value={replyText} onChange={(event) => setReplyText(event.target.value)} placeholder={user ? "Reply to seller…" : "Sign in to reply"} disabled={!user || replying} maxLength={500} className="h-9 rounded-full border-foreground/20 bg-background/40 text-sm" />
