@@ -15,6 +15,13 @@
       "when": 1794553849969,
       "tag": "0001_create_public_stories",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794664466945,
+      "tag": "0002_add_story_replies",
+      "breakpoints": true
     }
   ]
 }
