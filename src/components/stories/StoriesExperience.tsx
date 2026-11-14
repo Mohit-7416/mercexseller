@@ -431,7 +431,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
                 ))}
               </div>
               <div className="absolute left-4 right-10 top-7 z-20 flex items-center gap-2 text-primary-foreground drop-shadow-md">
-                <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary-foreground/70 bg-background/30 text-sm font-semibold">
+                  <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-primary-foreground/70 bg-background/30 text-sm font-semibold">
                   {currentGroup?.shopName.slice(0, 1).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -444,7 +444,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
               </div>
               <div className="absolute inset-0 grid place-items-center bg-foreground/90">
                 {activeStory.media_type.startsWith("video/") ? (
-                  <video src={activeStory.media_url} autoPlay playsInline onEnded={goNext} onTimeUpdate={(event) => {
+                  <video src={activeStory.media_url} autoPlay muted controls playsInline onEnded={goNext} onTimeUpdate={(event) => {
                     const video = event.currentTarget;
                     if (Number.isFinite(video.duration) && video.duration > 0) setProgress((video.currentTime / video.duration) * 100);
                   }} className="h-full w-full object-contain" />
