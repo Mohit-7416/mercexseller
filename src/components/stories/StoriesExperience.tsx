@@ -27,7 +27,7 @@ type StoryGroup = { shopId: string; shopName: string; sellerName: string; storie
 
 const REACTIONS = ["❤️", "🔥", "👏", "😍"];
 const STORY_DURATION = 7000;
-const MAX_MEDIA_SIZE = 50 * 1024 * 1024;
+const MAX_MEDIA_SIZE = 5 * 1024 * 1024;
 
 const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
   const { user } = useAuth();
@@ -327,7 +327,7 @@ const StoriesExperience = ({ fullPage = false }: { fullPage?: boolean }) => {
       return;
     }
     if (file.size > MAX_MEDIA_SIZE) {
-      toast({ title: "File is too large", description: "Stories must be under 50 MB.", variant: "destructive" });
+      toast({ title: "File is too large", description: "Stories must be under 5 MB.", variant: "destructive" });
       return;
     }
     if (selectedPreview) URL.revokeObjectURL(selectedPreview);
