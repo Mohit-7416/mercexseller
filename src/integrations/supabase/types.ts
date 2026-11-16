@@ -574,6 +574,50 @@ export type Database = {
           },
         ]
       }
+      seller_notifications: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          id: string
+          message: string
+          read_at: string | null
+          target_path: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          message: string
+          read_at?: string | null
+          target_path: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          message?: string
+          read_at?: string | null
+          target_path?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shops: {
         Row: {
           address_line: string | null
@@ -799,6 +843,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_seller_notification: {
+        Args: {
+          _entity_id?: string
+          _message: string
+          _target_path: string
+          _title: string
+          _type: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       get_story_metrics: {
         Args: { _story_id: string }
         Returns: {
