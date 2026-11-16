@@ -29,6 +29,13 @@
       "when": 1794726951042,
       "tag": "0003_enforce_story_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794805944150,
+      "tag": "0004_seller_notifications_inbox",
+      "breakpoints": true
     }
   ]
 }
