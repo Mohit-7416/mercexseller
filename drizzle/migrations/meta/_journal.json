@@ -36,6 +36,13 @@
       "when": 1794805944150,
       "tag": "0004_seller_notifications_inbox",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794806002012,
+      "tag": "0005_secure_notification_helpers_and_status_alerts",
+      "breakpoints": true
     }
   ]
 }
