@@ -7,3 +7,4 @@
 - [x] Add Day, Week, Month, Year and From/To period controls to Analysis.
 - [x] Replace per-order status dropdowns with read-only status labels.
 - [x] Add public photo/video Stories, seller controls, and a dashboard entry beside the welcome name.
+- [x] Add a live seller notification inbox for orders, order-status changes, auction bids, customer chats, reviews, and Story replies/reactions.

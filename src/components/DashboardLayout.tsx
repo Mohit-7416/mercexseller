@@ -27,6 +27,7 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import MobileBottomNav from "./MobileBottomNav";
+import NotificationsBell from "./NotificationsBell";
 
 const navItems = [
   { path: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -184,7 +185,11 @@ const DashboardLayout = () => {
             </div>
             <span className="font-semibold truncate">{currentShop?.name || 'SellerHub'}</span>
           </div>
-          <div className="w-9" />
+          <NotificationsBell />
+        </div>
+
+        <div className="sticky top-0 z-30 hidden justify-end border-b border-border bg-background/95 px-8 py-3 backdrop-blur md:flex">
+          <NotificationsBell />
         </div>
 
         <div className="p-4 md:p-8 pb-24 md:pb-8">
