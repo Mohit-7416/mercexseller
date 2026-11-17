@@ -43,6 +43,13 @@
       "when": 1794806002012,
       "tag": "0005_secure_notification_helpers_and_status_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794906337903,
+      "tag": "0006_limit_notification_update_to_read_status",
+      "breakpoints": true
     }
   ]
 }
